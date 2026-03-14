@@ -178,7 +178,7 @@ Kaizen is in **alpha**. The core pipeline, skills system, and integrations are w
 
 ## Documentation
 
-Full documentation at [docs.kaizen-agent.ai](https://docs.kaizen-agent.ai) *(coming soon)*.
+Full documentation at [kaizen-4.gitbook.io/kaizen-docs](https://kaizen-4.gitbook.io/kaizen-docs).
 
 ## Contributing
 
