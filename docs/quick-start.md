@@ -5,7 +5,7 @@
 - [Node.js](https://nodejs.org/) v20 or later
 - [Git](https://git-scm.com/)
 
-## Install and Run
+## Install & Run
 
 ```bash
 git clone https://github.com/kaizen-labs-ai/kaizen.git
@@ -14,12 +14,41 @@ npm run setup
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). On first launch, you'll be prompted to enter your [OpenRouter](https://openrouter.ai/) API key. It's stored in an encrypted local vault, never in plain text.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Connect WhatsApp
+## First Launch
 
-Scan the QR code in **Settings > WhatsApp** to link your account. You can then message Kaizen directly from your phone.
+On first launch, you'll be prompted to enter your [OpenRouter](https://openrouter.ai/) API key. This key gives Kaizen access to AI models (Claude, GPT, Gemini, etc.).
 
-## Connect Zapier
+1. Go to [openrouter.ai](https://openrouter.ai/) and create an account
+2. Generate an API key
+3. Paste it into the setup dialog
 
-Add your Zapier API key in **Settings > Extensions** to unlock 8,000+ app integrations.
+The key is stored in an encrypted local vault (AES-256-GCM), never in plain text or environment variables.
+
+## Your First Task
+
+1. Click **New Chat**
+2. Type a task, for example: "Search the web for the latest AI news and summarize the top 3 stories"
+3. Press Enter
+
+Kaizen will route your request through its agent pipeline, use the appropriate tools, and return the result. You can watch each step in real time by toggling **Dev** mode in the chat header.
+
+## What's Next
+
+- [Connect WhatsApp](integrations/whatsapp.md) to message Kaizen from your phone
+- [Connect Zapier](integrations/zapier.md) to unlock 8,000+ app integrations
+- [Set up Brave Search](integrations/brave-search.md) for web search capabilities
+- [Create your first skill](skills.md) to build a reusable automation
+- [Configure agents](settings/agents.md) to choose which AI models to use
+
+## Updating
+
+To update Kaizen to the latest version:
+
+```bash
+git pull
+npm run setup
+```
+
+This pulls the latest code and applies any new dependencies or database changes. Your data (chats, skills, memory, secrets) is preserved.
