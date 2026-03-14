@@ -52,6 +52,8 @@ To update Kaizen to the latest version:
 ```bash
 git pull
 npm run setup
+npm run build
+npm start
 ```
 
-This pulls the latest code and applies any new dependencies or database changes. Your data (chats, skills, memory, secrets) is preserved.
+Stop the server before updating. This pulls the latest code, applies any new dependencies or database changes, rebuilds the app, and starts it again. Your data (chats, skills, memory, secrets) is preserved.
