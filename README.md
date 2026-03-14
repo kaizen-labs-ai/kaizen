@@ -175,7 +175,7 @@ Add your Zapier API key in Settings > Extensions to unlock 8,000+ app integratio
 
 ## Status
 
-Kaizen is currently in **alpha**. The core pipeline, skills system, and integrations are working, but expect rough edges. We're actively building and improving. More integrations, more capabilities, and a smoother experience are on the way.
+Kaizen is in **alpha**. The core pipeline, skills system, and integrations are working, but expect rough edges. We're actively building and improving. More integrations, more capabilities, and a smoother experience are on the way.
 
 ## Documentation
 

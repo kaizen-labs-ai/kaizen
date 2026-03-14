@@ -56,4 +56,5 @@ next-env.d.ts
 
 # claude code
 .claude/
+.claude-memory-backup/
 .mcp.json
