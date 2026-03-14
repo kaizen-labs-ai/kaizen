@@ -143,7 +143,6 @@ Kaizen uses **handoff orchestration**. Specialized agents pass work through a pi
 ```bash
 git clone https://github.com/kaizen-labs-ai/kaizen.git
 cd kaizen
-npm install
 npm run setup
 npm run dev
 ```

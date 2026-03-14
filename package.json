@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "setup": "npx prisma generate && npx prisma db push && npx prisma db seed"
+    "setup": "npm install && npx prisma generate && npx prisma db push && npx prisma db seed"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
