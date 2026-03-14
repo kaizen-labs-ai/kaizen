@@ -11,10 +11,13 @@
 git clone https://github.com/kaizen-labs-ai/kaizen.git
 cd kaizen
 npm run setup
-npm run dev
+npm run build
+npm start
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+> **Development mode**: If you want to run with hot-reloading for development, use `npm run dev` instead of `npm run build && npm start`.
 
 ## First Launch
 

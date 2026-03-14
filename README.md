@@ -144,7 +144,8 @@ Kaizen uses **handoff orchestration**. Specialized agents pass work through a pi
 git clone https://github.com/kaizen-labs-ai/kaizen.git
 cd kaizen
 npm run setup
-npm run dev
+npm run build
+npm start
 ```
 
 Open [http://localhost:3000](http://localhost:3000). On first launch, you'll be prompted to enter your [OpenRouter](https://openrouter.ai/) API key. It's stored in an encrypted local vault, never in plain text.
