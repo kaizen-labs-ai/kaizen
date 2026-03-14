@@ -1,0 +1,402 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model AgentConfig {
+  id           String   @id
+  type         String   @default("system") // "system" | "user"
+  label        String
+  model        String
+  imageModel   String?
+  fileModel    String?
+  audioModel   String?
+  videoModel   String?
+  thinking     Boolean  @default(false)
+  timeout      Int      @default(120)
+  enabled      Boolean  @default(true)
+  systemPrompt  String
+  customPrompt  String?
+  promptVersion Int      @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+model Tool {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  description  String
+  type         String   // "api" | "mcp" | "library" | "system"
+  config       String   @default("{}")
+  inputSchema  String   @default("{}")
+  outputSchema String   @default("{}")
+  enabled      Boolean  @default(true)
+  memory       String?  // Learned quirks, tips, and patterns for this tool
+  createdBy    String   @default("user")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  skills SkillTool[]
+  steps  Step[]
+}
+
+model Skill {
+  id           String   @id @default(cuid())
+  name         String
+  description  String
+  instructions String
+  modelPref    String?
+  enabled      Boolean  @default(true)
+  createdBy    String   @default("user")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tools        SkillTool[]
+  guardrails   Guardrail[]
+  attachments  SkillAttachment[]
+  extensions   SkillExtension[]
+  vaultEntries SkillVaultEntry[]
+  objectives   Objective[]
+  schedules     Schedule[]
+  subSkills     SkillSubSkill[] @relation("SubSkillParent")
+  parentSkills  SkillSubSkill[] @relation("SubSkillChild")
+}
+
+model SkillTool {
+  id      String @id @default(cuid())
+  skillId String
+  toolId  String
+  skill   Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  tool    Tool   @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, toolId])
+}
+
+model Guardrail {
+  id         String   @id @default(cuid())
+  skillId    String
+  rule       String
+  type       String   // "must" | "must_not" | "limit"
+  editableBy String   @default("both")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+}
+
+model SkillAttachment {
+  id        String   @id @default(cuid())
+  skillId   String
+  filename  String
+  diskPath  String
+  mimeType  String   @default("application/octet-stream")
+  sizeBytes Int      @default(0)
+  createdAt DateTime @default(now())
+
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@index([skillId])
+}
+
+model Objective {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  status      String   @default("active")
+  phase       String   @default("triage") // triage | discovery | planning | executing | complete
+  skillId     String?
+  config      String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  skill         Skill?          @relation(fields: [skillId], references: [id])
+  runs          Run[]
+  workingMemory WorkingMemory[]
+  messages      Message[]
+}
+
+model Run {
+  id          String    @id @default(cuid())
+  objectiveId String
+  sequence    Int
+  status      String    @default("running")
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+
+  objective  Objective   @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  steps      Step[]
+  messages   Message[]
+  artifacts  Artifact[]
+
+  @@unique([objectiveId, sequence])
+}
+
+model Step {
+  id        String   @id @default(cuid())
+  runId     String
+  sequence  Int
+  type      String   // "reasoning" | "tool_call" | "tool_result" | "user_input" | "error"
+  content   String
+  toolId    String?
+  createdAt DateTime @default(now())
+
+  run  Run   @relation(fields: [runId], references: [id], onDelete: Cascade)
+  tool Tool? @relation(fields: [toolId], references: [id])
+
+  @@index([runId, sequence])
+}
+
+model Artifact {
+  id        String   @id @default(cuid())
+  runId     String
+  filename  String
+  diskPath  String
+  mimeType  String   @default("application/octet-stream")
+  sizeBytes Int      @default(0)
+  category     String   @default("file") // "file" | "result" | "script" | "data"
+  summary      String?
+  intermediate Boolean  @default(false)
+  metadata     String   @default("{}")
+  createdAt DateTime @default(now())
+
+  run Run @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+}
+
+model Schedule {
+  id          String    @id @default(cuid())
+  name        String
+  cron        String
+  enabled     Boolean   @default(true)
+  targetType  String    @default("skill") // "skill"
+  skillId     String?
+  destination String    @default("{\"type\":\"none\"}") // JSON: {type: "none"|"new_chat"|"chat"|"whatsapp", chatId?: string}
+  lastRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  skill    Skill?    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+}
+
+model SkillSubSkill {
+  id            String @id @default(cuid())
+  parentSkillId String
+  childSkillId  String
+  position      Int
+  role          String @default("")
+
+  parentSkill Skill @relation("SubSkillParent", fields: [parentSkillId], references: [id], onDelete: Cascade)
+  childSkill  Skill @relation("SubSkillChild", fields: [childSkillId], references: [id], onDelete: Cascade)
+
+  @@unique([parentSkillId, childSkillId])
+  @@index([parentSkillId])
+}
+
+model UserMemory {
+  id        String   @id @default("singleton")
+  content   String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+model WorkingMemory {
+  id          String   @id @default(cuid())
+  objectiveId String
+  runSequence Int
+  content     String
+  createdAt   DateTime @default(now())
+
+  objective Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+
+  @@unique([objectiveId, runSequence])
+}
+
+model Chat {
+  id            String          @id @default(cuid())
+  title         String
+  hasUnread     Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  messages      Message[]
+  extensionChat ExtensionChat?
+}
+
+model McpIntegration {
+  id        String   @id @default(cuid())
+  provider  String   @unique
+  name      String
+  enabled   Boolean  @default(false)
+  status    String   @default("disconnected")
+  statusMsg String?
+  vaultKey  String
+  config    String   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Extension {
+  id        String   @id @default(cuid())
+  type      String   @unique
+  name      String
+  enabled   Boolean  @default(false)
+  config    String   @default("{}")
+  status    String   @default("disconnected")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chats    ExtensionChat[]
+  contacts ChannelContact[]
+  skills   SkillExtension[]
+}
+
+model ExtensionChat {
+  id          String   @id @default(cuid())
+  extensionId String
+  externalId  String
+  chatId      String   @unique
+  label       String
+  createdAt   DateTime @default(now())
+
+  extension Extension @relation(fields: [extensionId], references: [id], onDelete: Cascade)
+  chat      Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@unique([extensionId, externalId])
+}
+
+model Message {
+  id          String     @id @default(cuid())
+  chatId      String
+  role        String     // "user" | "assistant"
+  content     String
+  objectiveId String?
+  runId       String?
+  createdAt   DateTime   @default(now())
+
+  chat      Chat       @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  objective Objective? @relation(fields: [objectiveId], references: [id])
+  run       Run?       @relation(fields: [runId], references: [id])
+
+  @@index([chatId, createdAt])
+}
+
+model Log {
+  id        String   @id @default(cuid())
+  level     String   // "info" | "warn" | "error" | "debug"
+  source    String   // "orchestrator" | "tool" | "openrouter" | "system"
+  message   String
+  meta      String   @default("{}")
+  runId     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([runId])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model Soul {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  traits      String
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  channelContacts ChannelContact[]
+}
+
+model ChannelContact {
+  id           String   @id @default(cuid())
+  extensionId  String
+  externalId   String   // "self", phone number, Discord user ID, etc.
+  name         String   @default("")
+  enabled      Boolean  @default(true)
+  isSelf       Boolean  @default(false)
+  soulId         String?
+  model          String?
+  customSoul     String   @default("")
+  instructions   String   @default("")
+  responsePrefix String   @default("")
+  permissions    String   @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  extension Extension @relation(fields: [extensionId], references: [id], onDelete: Cascade)
+  soul      Soul?     @relation(fields: [soulId], references: [id], onDelete: SetNull)
+
+  @@unique([extensionId, externalId])
+}
+
+model LinkPreview {
+  url         String   @id
+  title       String?
+  description String?
+  imageUrl    String?
+  faviconUrl  String?
+  siteName    String?
+  oembedHtml  String?
+  oembedType  String?
+  fetchedAt   DateTime @default(now())
+
+  @@index([fetchedAt])
+}
+
+model VaultEntry {
+  id          String   @id @default(cuid())
+  vaultKey    String   @unique
+  label       String
+  description String?
+  category    String   @default("other")
+  service     String?
+  fields      String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  skills SkillVaultEntry[]
+}
+
+model SkillExtension {
+  id          String    @id @default(cuid())
+  skillId     String
+  extensionId String
+  skill       Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  extension   Extension @relation(fields: [extensionId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, extensionId])
+}
+
+model SkillVaultEntry {
+  id           String     @id @default(cuid())
+  skillId      String
+  vaultEntryId String
+  skill        Skill      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  vaultEntry   VaultEntry @relation(fields: [vaultEntryId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, vaultEntryId])
+}
+
+model LlmUsage {
+  id               String   @id @default(cuid())
+  runId            String?
+  agentId          String
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  cost             Float
+  durationMs       Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([runId])
+  @@index([agentId])
+  @@index([model])
+}
