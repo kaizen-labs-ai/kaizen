@@ -1699,6 +1699,38 @@ async function main() {
     },
   });
 
+  // Built-in tool: gitbook-docs (MCP — Kaizen documentation lookup)
+  await prisma.tool.upsert({
+    where: { name: "gitbook-docs" },
+    update: {
+      description: "Search Kaizen's own documentation to answer questions about features, configuration, architecture, skills, plugins, integrations, and usage. Use this when the user asks how Kaizen works or how to set something up.",
+    },
+    create: {
+      name: "gitbook-docs",
+      description: "Search Kaizen's own documentation to answer questions about features, configuration, architecture, skills, plugins, integrations, and usage. Use this when the user asks how Kaizen works or how to set something up.",
+      type: "system",
+      config: "{}",
+      inputSchema: JSON.stringify({
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description: "What to look up in the Kaizen documentation (e.g., 'how do skills work', 'WhatsApp integration setup', 'scheduling configuration')",
+          },
+        },
+        required: ["query"],
+      }),
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: {
+          documentation: { type: "string" },
+        },
+      }),
+      enabled: true,
+      createdBy: "system",
+    },
+  });
+
   console.log("Seed complete");
 }
 

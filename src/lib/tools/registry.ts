@@ -8,6 +8,7 @@ import { downloadImageExecutorFactory } from "./builtin/download-image-tool";
 import { webFetchExecutor } from "./builtin/web-fetch-tool";
 import { runSnippetExecutorFactory } from "./builtin/run-snippet-tool";
 import { context7ResolveExecutor, context7DocsExecutor } from "./builtin/context7-tool";
+import { gitbookDocsExecutor } from "./builtin/gitbook-docs-tool";
 import { braveSearchExecutor, braveInstantExecutor, braveImageSearchExecutor, braveNewsSearchExecutor, braveVideoSearchExecutor } from "./builtin/brave-search-tool";
 import { shadcnListComponentsExecutor, shadcnGetComponentDocsExecutor } from "./builtin/shadcn-tool";
 import { useSecretExecutorFactory } from "./builtin/use-secret-tool";
@@ -57,6 +58,7 @@ const builtinExecutors: Record<string, ToolExecutorFn> = {
   "write-tool-memory": writeToolMemoryExecutor,
   "context7-resolve": context7ResolveExecutor,
   "context7-docs": context7DocsExecutor,
+  "gitbook-docs": gitbookDocsExecutor,
   "chrome-navigate": chromeNavigateExecutor,
   "chrome-snapshot": chromeSnapshotExecutor,
   "chrome-click": chromeClickExecutor,
