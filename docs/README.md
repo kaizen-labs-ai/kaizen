@@ -7,7 +7,7 @@ Kaizen is an open-source AI automation agent that runs locally on your machine. 
 Most AI tools are stateless. They forget everything between sessions and repeat the same mistakes. Kaizen is different:
 
 - **It automates, not just chats.** Kaizen browses the web, fills out forms, calls APIs, runs code, and connects to thousands of apps to complete real tasks end-to-end.
-- **It learns.** After every run, reflection and repair agents analyze what happened, identify gaps, and persist improvements to memory. The more you use it, the better it gets.
+- **It learns.** After every run, insights and learnings are persisted to memory. The more you use it, the better it gets.
 - **It's yours.** Runs entirely on your machine. No data leaves your environment except API calls to the model provider you choose.
 
 ## What Can Kaizen Do?
@@ -37,7 +37,7 @@ Most AI tools are stateless. They forget everything between sessions and repeat 
 
 ## Key Features
 
-- **Multi-agent pipeline** with specialized agents for routing, planning, executing, reviewing, and repairing
+- **Multi-agent pipeline** with specialized agents for routing, planning, executing, and reviewing
 - **Skills system** for reusable automations that improve themselves over time
 - **Scheduling** to run any skill on a cron schedule
 - **Plugins** for custom code (Python, Node.js, TypeScript, Bash, Ruby)

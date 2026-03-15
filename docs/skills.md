@@ -64,7 +64,7 @@ Guardrails can be set as editable by:
 - **User only**: Only you can change them
 - **Agent only**: The agent can refine them based on experience
 
-The agent can update guardrails during reflection when it learns what works better.
+The agent can update guardrails based on experience when it learns what works better.
 
 ## Attachments
 
@@ -90,4 +90,4 @@ Access the skill database from the **Database** tab in the skill detail page.
 
 ## Self-Improvement
 
-When a skill runs and something goes wrong, the reflection agent analyzes the failure. If the repair agent fixes the approach, those learnings are persisted. The next time the skill runs, it benefits from the previous experience. Over time, skills get more reliable and effective.
+Skills improve over time through memory. When a skill runs, insights and learnings from the interaction are persisted to memory. The next time the skill runs, it benefits from the previous experience. Over time, skills get more reliable and effective.

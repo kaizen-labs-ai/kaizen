@@ -36,10 +36,7 @@ User Message
     |      Developer --> Test --> Review
     |
     v
-  Reflection  -->  Analyzes the run for gaps
-    |
-    v
-  Repair  -->  Fixes issues and persists learnings to memory
+  Output  -->  Routes final response to user
 ```
 
 ## Key Concepts
@@ -104,7 +101,6 @@ The orchestrator has been decomposed into focused modules:
 | `phase-machine.ts` | Phase transition logic |
 | `message-builder.ts` | Prompt and context assembly |
 | `output-router.ts` | User-facing output emission |
-| `reflection.ts` | Post-run quality analysis |
 | `agent-gates.ts` | Claim verification, grounding, search-pivot |
 | `schemas.ts` | JSON schemas for structured output |
 | `prompt-builder.ts` | Skill/tool/memory injection into prompts |

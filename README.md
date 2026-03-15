@@ -22,7 +22,7 @@ Kaizen is an open-source AI automation agent that runs locally on your machine. 
 Most AI tools are stateless. They forget everything between sessions and repeat the same mistakes. Kaizen is different:
 
 - **It automates, not just chats.** Kaizen browses the web, fills out forms, calls APIs, runs code, and connects to thousands of apps to complete real tasks end-to-end.
-- **It learns.** After every run, reflection and repair agents analyze what happened, identify gaps, and persist improvements to memory. The more you use it, the better it gets.
+- **It learns.** After every run, insights and learnings are persisted to memory. The more you use it, the better it gets.
 - **It's yours.** Runs entirely on your machine. No data leaves your environment except API calls to the model provider you choose.
 
 ## What Can Kaizen Do?
@@ -62,7 +62,7 @@ Skills are the core of Kaizen. They are reusable automations that the agent crea
 - **Guardrails.** Each skill has editable rules that control quality, behavior, and boundaries. Both you and the agent can update them.
 - **Sub-skills.** Skills can reference other skills, building complex multi-step workflows from simple building blocks.
 - **Scheduling.** Attach a cron schedule to any skill. Daily reports, weekly digests, hourly monitoring. Set it and forget it.
-- **Self-improving.** When something goes wrong, the reflection agent analyzes the failure, the repair agent fixes the approach, and the improvement is persisted. Next time, the skill runs better.
+- **Self-improving.** When something goes wrong, insights are persisted to memory. Next time, the skill runs better.
 
 ## Integrations
 
@@ -101,28 +101,24 @@ Kaizen uses **handoff orchestration**. Specialized agents pass work through a pi
               │              │  Review      │      │                │
               │              └──────────────┘      │                │
               │                                    │                │
-              │              Reflection ◄──────────┘                │
-              │                  ▼                                  │
-              │              Repair (if needed)                     │
-              │                  ▼                                  │
-              │              Memory (persist learnings)             │
+              │              Output ◄─────────────┘                │
               └─────────────────────────────────────────────────────┘
 ```
 
-**Router** classifies your intent and picks the right path. **Planner** researches the task and builds a step-by-step approach. **Executor** does the work using tools, skills, and integrations. **Developer** writes and tests code when needed. **Reflection** analyzes the run and catches gaps. **Repair** fixes issues and persists learnings to memory.
+**Router** classifies your intent and picks the right path. **Planner** researches the task and builds a step-by-step approach. **Executor** does the work using tools, skills, and integrations. **Developer** writes and tests code when needed. **Reviewer** inspects output for quality.
 
 ## Features
 
 ### Agents & Intelligence
-- **Multi-agent pipeline** with Router, Planner, Executor, Reviewer, Developer, Reflection, and Repair
-- **Self-improvement** through reflection after every run. The repair agent fixes gaps and persists learnings
+- **Multi-agent pipeline** with Router, Planner, Executor, Reviewer, and Developer
+- **Self-improvement** through persistent memory that accumulates learnings across runs
 - **Smart guardrails** including loop detection, failure detection, grounding gates, and claim verification
 - **Multi-model** support through [OpenRouter](https://openrouter.ai/): Claude, GPT, Gemini, DeepSeek, and more
 
 ### Memory & Learning
 - **User memory** is a persistent profile that the agent maintains and compacts over time. It remembers your preferences, accounts, and how you like things done
 - **Working memory** provides per-objective context that improves the agent's approach across runs
-- **Learning loop** ensures that when reflection finds and repairs a gap, the fix is merged into long-term memory
+- **Learning loop** ensures insights from each run are merged into long-term memory
 
 ### Interface
 - **Chat UI** with a clean dark mode interface built with shadcn/ui

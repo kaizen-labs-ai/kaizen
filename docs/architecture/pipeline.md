@@ -68,26 +68,6 @@ The **Reviewer** agent inspects the output, particularly for visual content:
 
 Review happens automatically for code pipeline outputs that produce visual results.
 
-## 5. Reflection
-
-After every run, the **Reflection** agent analyzes what happened:
-
-- Was the user's request fully addressed?
-- Were there any errors or missed requirements?
-- Did the agent hallucinate or make false claims?
-
-Reflection runs up to 2 passes (configurable). If no issues are found, the run completes.
-
-## 6. Repair
-
-When reflection finds gaps, the **Repair** agent takes targeted corrective actions:
-
-- Edits skills that had issues
-- Writes learnings to user memory
-- Makes surgical fixes without re-running the full pipeline
-
-When repair succeeds, the learnings are automatically merged into long-term memory.
-
 ## Output Routing
 
 All user-facing output goes through the **OutputRouter**, which:

@@ -35,5 +35,4 @@
 * [Overview](architecture/overview.md)
 * [Agent Pipeline](architecture/pipeline.md)
 * [Code Pipeline](architecture/code-pipeline.md)
-* [Reflection & Repair](architecture/reflection.md)
 * [Tools Reference](architecture/tools-reference.md)

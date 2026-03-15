@@ -61,5 +61,3 @@ The Planner agent has a special **Interactive Planning** toggle. When enabled, t
 | **Reviewer** | Inspects code pipeline output and describes what it sees | Varies by modality |
 | **Titler** | Generates chat titles | Gemini Flash |
 | **Compactor** | Compresses long conversation histories | Gemini Flash |
-| **Reflection** | Analyzes runs for quality gaps | Configurable |
-| **Repair** | Fixes issues found by reflection | Configurable |

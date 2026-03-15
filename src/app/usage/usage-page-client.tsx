@@ -73,8 +73,6 @@ function humanizeAgent(agentId: string): string {
     fallback: "Fallback",
     transcribe: "Transcribe",
     "image-generator": "Image Gen",
-    reflection: "Reflection",
-    repair: "Repair",
     unknown: "Unknown",
   };
   return map[agentId] ?? agentId;

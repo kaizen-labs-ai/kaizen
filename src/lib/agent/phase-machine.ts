@@ -1,6 +1,6 @@
 /**
  * Phase-to-agent mapping, tool filtering, router classification,
- * and repair tool definitions for the orchestrator.
+ * and tool filtering for the orchestrator.
  */
 
 import {

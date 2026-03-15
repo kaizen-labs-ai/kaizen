@@ -225,7 +225,7 @@ export async function buildRecentToolUsage(chatId: string | undefined, currentRu
       const name = data.name as string;
       if (!name) continue;
       // Skip admin/infrastructure tools
-      if (["advance-phase", "repair-complete", "brave-search", "brave-image-search",
+      if (["advance-phase", "brave-search", "brave-image-search",
            "brave-instant", "brave-news-search", "brave-video-search",
            "web-fetch", "chrome-snapshot", "chrome-click", "chrome-fill",
            "chrome-navigate", "chrome-evaluate", "chrome-wait",

@@ -113,7 +113,6 @@ These tools are used internally by the agent pipeline:
 | `save-result` | Save a structured result to artifacts |
 | `read-run-history` | Get previous run history for context |
 | `list-tools` | List tools available to the current skill |
-| `repair-complete` | Signal that repair work is done |
 
 ## Zapier Tools
 

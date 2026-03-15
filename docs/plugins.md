@@ -8,7 +8,7 @@ Plugins are custom code scripts that extend Kaizen's capabilities. Use them for 
 |---|--------|---------|
 | **Written in** | Natural language | Code (Python, Node.js, etc.) |
 | **Best for** | Agentic workflows, multi-step tasks | Deterministic operations, heavy computation |
-| **Self-improving** | Yes, via reflection | No, code is fixed until edited |
+| **Self-improving** | Yes, via memory | No, code is fixed until edited |
 | **Quality checked** | Via guardrails | Via code pipeline (test + review) |
 
 Skills and plugins work together. A skill can reference a plugin for its code-heavy steps (e.g., a "Weather Dashboard" skill that calls a chart-generation plugin).

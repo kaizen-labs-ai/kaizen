@@ -24,7 +24,6 @@ Toggle the **Dev** button in the chat header to see exactly what each agent is d
 - **Agent handoffs** as work passes through the pipeline
 - **Memory retrieval** and context building
 - **Code pipeline** execution (developer, test, review steps)
-- **Reflection** analysis and repair actions
 
 Dev mode shows the full step-by-step execution with timing information.
 

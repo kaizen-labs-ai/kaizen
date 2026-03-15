@@ -35,12 +35,10 @@ Individual tools can have their own persistent memory. When the agent learns som
 
 ## Learning Loop
 
-The memory system is tightly connected to Kaizen's reflection and repair cycle:
+The memory system improves with use:
 
 1. A run completes
-2. The reflection agent analyzes what happened
-3. If gaps are found, the repair agent fixes them
-4. If the repair succeeds, the learnings are merged into user memory
-5. Future runs benefit from these accumulated insights
+2. Insights and learnings from the interaction are persisted to user memory
+3. Future runs benefit from these accumulated insights
 
 This is what makes Kaizen's "self-improving" claim concrete. The more you use it, the better it gets at understanding your needs and avoiding past mistakes.
