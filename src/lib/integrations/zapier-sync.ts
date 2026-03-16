@@ -10,7 +10,7 @@ const META_TOOLS = new Set(["get_configuration_url"]);
 
 /**
  * Sync tools from Zapier's MCP server into the local Tool table.
- * Enables new tools, disables removed ones.
+ * Enables new tools, deletes removed ones.
  */
 export async function syncZapierTools(): Promise<{
   synced: number;
@@ -60,13 +60,13 @@ export async function syncZapierTools(): Promise<{
       });
     }
 
-    // Disable tools that disappeared from Zapier
+    // Delete tools that disappeared from Zapier
     const existing = await prisma.tool.findMany({ where: { createdBy: "zapier" } });
-    let disabledCount = 0;
+    let removedCount = 0;
     for (const t of existing) {
-      if (!syncedNames.has(t.name) && t.enabled) {
-        await prisma.tool.update({ where: { id: t.id }, data: { enabled: false } });
-        disabledCount++;
+      if (!syncedNames.has(t.name)) {
+        await prisma.tool.delete({ where: { id: t.id } });
+        removedCount++;
       }
     }
 
@@ -87,7 +87,7 @@ export async function syncZapierTools(): Promise<{
       },
     });
 
-    return { synced: syncedNames.size, disabled: disabledCount };
+    return { synced: syncedNames.size, disabled: removedCount };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
 
