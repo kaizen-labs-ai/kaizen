@@ -175,7 +175,7 @@ Kaizen is in **alpha**. The core pipeline, skills system, and integrations are w
 
 ## Documentation
 
-Full documentation at [kaizen-4.gitbook.io/kaizen-docs](https://kaizen-4.gitbook.io/kaizen-docs).
+Full documentation at [kaizen-4.gitbook.io/kaizen-docs](https://kaizen-4.gitbook.io/kaizen-docs), powered by [GitBook](https://www.gitbook.com/).
 
 ## Contributing
 
@@ -188,6 +188,12 @@ Found a vulnerability? Please don't open a public issue. See [SECURITY.md](./SEC
 ## License
 
 [MIT](./LICENSE). Use it, fork it, build on it.
+
+---
+
+## Supporters
+
+Documentation hosting provided by [GitBook](https://www.gitbook.com/) through their Community plan for open-source projects.
 
 ---
 
