@@ -186,10 +186,12 @@ export function AppSidebar() {
       <SidebarHeader className="min-h-[57px] justify-center">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="hover:bg-transparent active:bg-transparent cursor-default">
-              <Bot className="h-5 w-5 shrink-0 text-white" />
-              <span className="text-sm font-semibold text-white">Kaizen</span>
-              <span className="translate-y-[2px] rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">alpha</span>
+            <SidebarMenuButton className="hover:bg-transparent active:bg-transparent cursor-default flex justify-between">
+              <div className="flex items-center gap-2">
+                <Bot className="h-5 w-5 shrink-0 text-white" />
+                <span className="text-sm font-semibold text-white">Kaizen</span>
+              </div>
+              <span className="translate-y-[2px] rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">v{require("../../../package.json").version}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
