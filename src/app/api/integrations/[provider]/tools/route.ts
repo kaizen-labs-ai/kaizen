@@ -11,7 +11,7 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const tools = await prisma.tool.findMany({
-    where: { createdBy: provider },
+    where: { createdBy: provider, enabled: true },
     orderBy: { name: "asc" },
   });
 
