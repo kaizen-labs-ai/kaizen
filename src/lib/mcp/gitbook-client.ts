@@ -9,7 +9,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
 const GITBOOK_MCP_ENDPOINT =
-  "https://kaizen-4.gitbook.io/kaizen-docs/~gitbook/mcp";
+  "https://docs.kaizen-agent.ai/~gitbook/mcp";
 const MAX_RESPONSE_CHARS = 30_000;
 
 let client: Client | null = null;
