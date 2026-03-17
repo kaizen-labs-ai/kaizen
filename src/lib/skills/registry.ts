@@ -102,14 +102,16 @@ export async function updateSkill(
   });
 }
 
-export async function updateSkillTools(skillId: string, toolIds: string[], toolType?: "system" | "plugin") {
+export async function updateSkillTools(skillId: string, toolIds: string[], toolType?: "system" | "plugin" | "non-plugin") {
   if (toolType) {
     // Type-aware: only delete SkillTool records whose tool matches the given type
     const existing = await prisma.skillTool.findMany({
       where: { skillId },
       include: { tool: { select: { type: true } } },
     });
-    const toDelete = existing.filter((st) => st.tool.type === toolType).map((st) => st.id);
+    const toDelete = existing.filter((st) =>
+      toolType === "non-plugin" ? st.tool.type !== "plugin" : st.tool.type === toolType
+    ).map((st) => st.id);
     if (toDelete.length > 0) {
       await prisma.skillTool.deleteMany({ where: { id: { in: toDelete } } });
     }

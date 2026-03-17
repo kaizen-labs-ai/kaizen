@@ -271,6 +271,14 @@ export function SkillDetailClient({ initialData, id: paramId }: { initialData: S
       description: data.description,
       instructions: data.instructions,
     });
+    // Initialize linked tools/plugins/secrets from loaded data
+    if (data.tools) {
+      setPendingToolIds(data.tools.filter((st: { tool: { type: string } }) => st.tool.type !== "plugin").map((st: { tool: { id: string } }) => st.tool.id));
+      setPendingPluginIds(data.tools.filter((st: { tool: { type: string } }) => st.tool.type === "plugin").map((st: { tool: { id: string } }) => st.tool.id));
+    }
+    if (data.vaultEntries) {
+      setPendingSecretIds(data.vaultEntries.map((ve: { vaultEntryId: string }) => ve.vaultEntryId));
+    }
     // Initialize sub-skills from loaded data
     if (data.subSkills) {
       setPendingSubSkills(
@@ -283,16 +291,27 @@ export function SkillDetailClient({ initialData, id: paramId }: { initialData: S
             childSkill: s.childSkill,
           }))
       );
-      setSubSkillsDirty(false);
     }
+    // Reset dirty flags after fresh data is set to avoid jitter
+    setToolsDirty(false);
+    setPluginsDirty(false);
+    setSecretsDirty(false);
+    setSubSkillsDirty(false);
   }, [skillId, router]);
 
   useEffect(() => {
     if (!initialData) loadSkill();
   }, [loadSkill]);
 
-  // Initialize sub-skills from initialData (server-side pre-fetch)
+  // Initialize pending state from initialData (server-side pre-fetch)
   useEffect(() => {
+    if (initialData?.tools) {
+      setPendingToolIds(initialData.tools.filter((st: { tool: { type: string } }) => st.tool.type !== "plugin").map((st: { tool: { id: string } }) => st.tool.id));
+      setPendingPluginIds(initialData.tools.filter((st: { tool: { type: string } }) => st.tool.type === "plugin").map((st: { tool: { id: string } }) => st.tool.id));
+    }
+    if (initialData?.vaultEntries) {
+      setPendingSecretIds(initialData.vaultEntries.map((ve: SkillVaultEntry) => ve.vaultEntry.id));
+    }
     if (initialData?.subSkills) {
       setPendingSubSkills(
         [...initialData.subSkills]
@@ -390,12 +409,12 @@ export function SkillDetailClient({ initialData, id: paramId }: { initialData: S
         await fetch(`/api/skills/${skillId}/attachments`, { method: "POST", body: fd });
       }
 
-      // Persist tool changes (type-aware so plugins are preserved)
+      // Persist tool changes (non-plugin so plugins are preserved)
       if (toolsDirty) {
         await fetch(`/api/skills/${skillId}/tools`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ toolIds: pendingToolIds, toolType: "system" }),
+          body: JSON.stringify({ toolIds: pendingToolIds, toolType: "non-plugin" }),
         });
       }
 
@@ -432,15 +451,11 @@ export function SkillDetailClient({ initialData, id: paramId }: { initialData: S
         });
       }
 
-      // Clear pending state
+      // Clear pending state (dirty flags are reset inside loadSkill to avoid jitter)
       setPendingGuardrails([]);
       setPendingFiles([]);
       setDeletedGuardrailIds(new Set());
       setDeletedAttachmentIds(new Set());
-      setToolsDirty(false);
-      setPluginsDirty(false);
-      setSecretsDirty(false);
-      setSubSkillsDirty(false);
 
       toast.success("Skill updated");
       queryClient.invalidateQueries({ queryKey: ["skills"] });
@@ -657,27 +672,37 @@ export function SkillDetailClient({ initialData, id: paramId }: { initialData: S
     setSubSkillsDirty(true);
   }
 
-  // Unified view of linked tools
+  // Unified view of linked tools (always sorted alphabetically)
   const linkedTools = useMemo(() => {
     if (!skill) return [];
+    let items;
     if (isNew || toolsDirty) {
-      return pendingToolIds.map((id) => {
+      items = pendingToolIds.map((id) => {
         const t = allTools.find((tool) => tool.id === id);
-        return t ? { id, name: t.name, type: t.type } : { id, name: id, type: "unknown" };
+        if (t) return { id, name: t.name, type: t.type };
+        const st = skill.tools.find((s) => s.tool.id === id);
+        return st ? { id, name: st.tool.name, type: st.tool.type } : { id, name: id, type: "unknown" };
       });
+    } else {
+      items = skill.tools.filter((st) => st.tool.type !== "plugin").map((st) => ({ id: st.tool.id, name: st.tool.name, type: st.tool.type }));
     }
-    return skill.tools.filter((st) => st.tool.type !== "plugin").map((st) => ({ id: st.tool.id, name: st.tool.name, type: st.tool.type }));
+    return items.sort((a, b) => a.name.localeCompare(b.name));
   }, [skill, isNew, toolsDirty, pendingToolIds, allTools]);
 
   const linkedPlugins = useMemo(() => {
     if (!skill) return [];
+    let items;
     if (isNew || pluginsDirty) {
-      return pendingPluginIds.map((id) => {
+      items = pendingPluginIds.map((id) => {
         const p = allPlugins.find((pl) => pl.id === id);
-        return p ? { id, name: p.name } : { id, name: id };
+        if (p) return { id, name: p.name };
+        const st = skill.tools.find((s) => s.tool.id === id);
+        return st ? { id, name: st.tool.name } : { id, name: id };
       });
+    } else {
+      items = skill.tools.filter((st) => st.tool.type === "plugin").map((st) => ({ id: st.tool.id, name: st.tool.name }));
     }
-    return skill.tools.filter((st) => st.tool.type === "plugin").map((st) => ({ id: st.tool.id, name: st.tool.name }));
+    return items.sort((a, b) => a.name.localeCompare(b.name));
   }, [skill, isNew, pluginsDirty, pendingPluginIds, allPlugins]);
 
   const linkedSecrets = useMemo(() => {
