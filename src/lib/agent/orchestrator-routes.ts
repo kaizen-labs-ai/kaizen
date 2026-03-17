@@ -331,6 +331,33 @@ export async function handleImageGenerationRoute(ctx: RouteContext): Promise<voi
     }
   }
 
+  // Retry once if the model returned text but no image
+  if (markdownImages.length === 0) {
+    const retryResponse = await callOpenRouter({
+      model: imgModel,
+      messages: imgMessages,
+      modalities: ["image", "text"],
+      image_config: aspectRatio ? { aspect_ratio: aspectRatio } : undefined,
+      stream: false,
+      signal: ctx.signal,
+      timeout: (imgConfig.timeout ?? 180) * 1000,
+      meta: { agentId: "image-generator", runId: ctx.runId },
+    });
+    if (retryResponse.content) responseText = retryResponse.content;
+    if (retryResponse.multimodalContent) {
+      const images = extractImageParts(retryResponse.multimodalContent);
+      if (images.length > 0) {
+        const refs = await saveImageArtifacts(images, ctx.runId);
+        markdownImages.push(...refs);
+      }
+    }
+  }
+
+  // If still no image after retry, inform the user instead of passing through hallucinated text
+  if (markdownImages.length === 0) {
+    responseText = "Image generation failed — the model did not return an image. Please try again.";
+  }
+
   // Strip hallucinated artifact refs
   responseText = responseText
     .replace(/!\[.*?\]\(\/api\/artifacts\/[^)]+\)/g, "")
