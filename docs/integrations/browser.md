@@ -45,6 +45,10 @@ Browser automation includes several built-in guardrails:
 - **Snapshot pruning**: Keeps only the 2 most recent screenshots to manage memory
 - **Loop detection**: Detects and breaks repetitive patterns
 
+{% hint style="warning" %}
+**Verify critical browser actions.** Browser automation is driven by an LLM interpreting page content and deciding what to click, fill, or submit. Websites change frequently, and the agent may misidentify elements or take unexpected actions. For workflows that submit forms, make purchases, or modify data on external sites, always verify the results. Consider running new automations in incognito mode first to test them safely.
+{% endhint %}
+
 ## Use Cases
 
 - Filling out web forms and applications

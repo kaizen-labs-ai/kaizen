@@ -42,6 +42,10 @@ Ask the agent:
 
 The agent will write the code, test it through the code pipeline (developer, execute, review), and register it as a tool.
 
+{% hint style="warning" %}
+**Review AI-generated code.** When plugins are created or edited through chat, the code is written by an LLM. Although it goes through a quality pipeline (syntax check, execution, review), LLM-generated code is non-deterministic and may contain subtle bugs or unexpected behavior. Always review the generated code before using it in production or for sensitive tasks.
+{% endhint %}
+
 ## Input / Output Contract
 
 Plugins receive input as JSON and must output JSON to stdout.

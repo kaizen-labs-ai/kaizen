@@ -35,6 +35,10 @@ Most AI tools are stateless. They forget everything between sessions and repeat 
 | "Build me a weather dashboard for my city" | Researches weather APIs, writes the code, tests it through a quality pipeline with visual review, and delivers a working dashboard |
 | "Analyze this CSV and tell me what's interesting" | Reads the data, runs statistical analysis, generates visualizations, and presents findings with insights |
 
+{% hint style="info" %}
+**A note on AI outputs:** Kaizen is powered by large language models (LLMs), which are non-deterministic by nature. The same task may produce slightly different results each time. For important or sensitive workflows, we recommend reviewing outputs before acting on them.
+{% endhint %}
+
 ## Key Features
 
 - **Multi-agent pipeline** with specialized agents for routing, planning, executing, and reviewing

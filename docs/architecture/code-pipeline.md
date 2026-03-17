@@ -80,6 +80,10 @@ Text-only output skips the review step.
 - **Version verification**: `pip show` / `npm list` runs before the developer step to inject accurate version info
 - **Edit-plugin disk override**: When editing a plugin, the orchestrator reads the actual current script from disk, preventing the executor's simplified version from replacing developer-enhanced code
 
+{% hint style="warning" %}
+**AI-generated code requires human review.** The code pipeline includes automated quality checks (syntax validation, test execution, visual review), but these do not replace human oversight. LLMs are non-deterministic — the same prompt can produce different code each time, and automated tests may not cover all edge cases. Always review generated code before relying on it for important tasks.
+{% endhint %}
+
 ## Composite Skill + Plugin Pattern
 
 For skills with code-heavy steps (charts, dashboards), the executor creates a dedicated plugin first (goes through the full pipeline), then creates the skill referencing that plugin. This ensures the code is quality-checked before the skill uses it.

@@ -68,6 +68,10 @@ The **Reviewer** agent inspects the output, particularly for visual content:
 
 Review happens automatically for code pipeline outputs that produce visual results.
 
+{% hint style="info" %}
+**Non-determinism in the pipeline.** LLMs may produce different results for the same input. Routing decisions, plans, and execution strategies can vary between runs. The guardrails above mitigate common failure modes, but they cannot guarantee identical outcomes every time. For critical workflows, consider enabling Interactive Planning (to approve plans before execution) and reviewing outputs before acting on them.
+{% endhint %}
+
 ## Output Routing
 
 All user-facing output goes through the **OutputRouter**, which:

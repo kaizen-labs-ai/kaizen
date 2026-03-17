@@ -69,3 +69,7 @@ The scheduler checks for due schedules every 60 seconds. When a schedule fires:
 4. Records the run timestamp
 
 If the server was offline when a schedule was due, it won't fire retroactively for missed runs. Re-enabling a disabled schedule resets the timer to prevent immediate firing.
+
+{% hint style="warning" %}
+**Scheduled tasks run unattended.** Since LLMs are non-deterministic, a skill that works perfectly today may produce unexpected results on a future run — especially if it interacts with external websites or APIs that change over time. Periodically review the outputs of your scheduled skills (available in the Outputs page) to ensure they are still working as expected.
+{% endhint %}

@@ -42,6 +42,10 @@ The agent will create the skill, configure its tools, and set up guardrails auto
 
 Skills can reference other skills as sub-skills, building complex multi-step workflows from simple building blocks.
 
+{% hint style="warning" %}
+**Human oversight recommended.** Multi-step workflows that chain several sub-skills together increase the chance of compounding errors. LLMs are non-deterministic — each step may vary slightly, and small deviations can grow across a chain. Review the output of complex skill compositions, especially when they interact with external services.
+{% endhint %}
+
 For example, a "Weekly Report" skill might use:
 1. A "Data Collection" sub-skill to gather information
 2. An "Analysis" sub-skill to process the data
@@ -91,3 +95,7 @@ Access the skill database from the **Database** tab in the skill detail page.
 ## Self-Improvement
 
 Skills improve over time through memory. When a skill runs, insights and learnings from the interaction are persisted to memory. The next time the skill runs, it benefits from the previous experience. Over time, skills get more reliable and effective.
+
+{% hint style="info" %}
+Self-improvement relies on LLM-generated memory entries. Periodically review your skill's memory and guardrails to ensure the agent is learning the right lessons — LLMs can occasionally draw incorrect conclusions from a run.
+{% endhint %}
