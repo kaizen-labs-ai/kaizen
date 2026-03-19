@@ -104,10 +104,22 @@ When **Deep Skills** is enabled (Settings > Agents > Executor), the agent automa
 
 This means skills are validated before you ever run them. File outputs produced during the smoke test are hidden — only the final verified output is shown to you.
 
+### Large Data Processing
+
+When a skill fetches large API responses (e.g., scanning hundreds of markets or aggregating feeds), the system automatically saves the full response to a file and provides the agent with a compact summary, sample items, and a ready-to-use `run-snippet` code template. The agent then uses `run-snippet` to process the data with real code (filtering, scoring, transforming) rather than trying to parse it inline — enabling skills that work with datasets far larger than what fits in the model's context window.
+
+### Adapting When Things Fail
+
+During testing, the agent tries multiple approaches autonomously:
+- If `web-fetch` fails → tries browser automation (`chrome-navigate`)
+- If the browser can't load → searches for an API with `brave-search`
+- If data processing is needed → uses `run-snippet` to write and execute filtering code
+- After each fix → updates the skill instructions via `edit-skill` so future runs don't hit the same problem
+
 Deep Skills is enabled by default. You can toggle it off in **Settings > Agents > Executor** if you prefer the faster create-and-deliver flow without testing.
 
 {% hint style="info" %}
-Deep Skills adds a few seconds to skill creation but significantly reduces the chance of delivering a broken skill. It is especially useful when skills involve external APIs or multi-step tool chains where failures are common.
+Deep Skills adds time to skill creation (typically 30s–2min depending on complexity) but significantly reduces the chance of delivering a broken skill. It is especially useful when skills involve external APIs, large data processing, or multi-step tool chains where failures are common.
 {% endhint %}
 
 ## Self-Improvement

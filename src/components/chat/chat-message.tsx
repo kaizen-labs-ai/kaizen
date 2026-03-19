@@ -364,6 +364,13 @@ export const ChatMessage = memo(function ChatMessage({ role, content, linkPrevie
                   </span>
                 );
               },
+              table({ children, ...props }) {
+                return (
+                  <div className="overflow-x-auto -mx-1">
+                    <table {...props}>{children}</table>
+                  </div>
+                );
+              },
             }}
           >
             {textContent}
