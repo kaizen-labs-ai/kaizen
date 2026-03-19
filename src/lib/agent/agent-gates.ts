@@ -305,8 +305,9 @@ export async function evaluateToolGates(params: ToolGateParams): Promise<boolean
       result: { success: false, error: "Skill auto-test gate — skill created/edited but not tested" },
       agent: agentId,
     });
-    // One-shot nudge — clear flag so it doesn't block indefinitely
+    // One-shot nudge — clear flag and mark as fired to prevent edit-skill re-trigger loop
     state.skillCreatedNotTested = false;
+    state.deepSkillsNudgeFired = true;
     return true;
   }
 

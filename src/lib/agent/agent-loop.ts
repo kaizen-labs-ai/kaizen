@@ -564,7 +564,8 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
 
       // ── Track create-skill / edit-skill — triggers auto-test nudge on advance-phase (deep skills) ──
       // Flag is only cleared by the one-shot gate in agent-gates.ts (not by tool calls).
-      if ((tc.function.name === "create-skill" || tc.function.name === "edit-skill") && result.success) {
+      // Once the nudge has fired, don't re-trigger on subsequent edit-skill calls (prevents loop).
+      if ((tc.function.name === "create-skill" || tc.function.name === "edit-skill") && result.success && !state.deepSkillsNudgeFired) {
         const deepSkills = await getSetting("deep_skills", "false");
         if (deepSkills === "true") {
           state.skillCreatedNotTested = true;
