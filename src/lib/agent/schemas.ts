@@ -168,6 +168,8 @@ export interface AgentLoopState {
   pipelineFailed: boolean;
   /** Sticky: zapier_get_configuration_url was called — block create-skill/create-schedule/create-plugin */
   zapierGuidanceGiven: boolean;
+  /** Sticky: create-skill was called — nudge executor to smoke-test before advance-phase */
+  skillCreatedNotTested: boolean;
   /** Cached pipeline_summary count — avoids DB query on every code tool call */
   pipelineCount: number;
   /** Cached planner context from prior steps — avoids DB query on every pipeline invocation */
@@ -208,6 +210,7 @@ export function createAgentLoopState(): AgentLoopState {
     groundingGateFired: false,
     pipelineFailed: false,
     zapierGuidanceGiven: false,
+    skillCreatedNotTested: false,
     pipelineCount: 0,
     cachedPlannerContext: undefined,
     plannerContextResolved: false,

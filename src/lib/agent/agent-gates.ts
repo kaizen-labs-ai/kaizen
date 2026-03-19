@@ -292,6 +292,24 @@ export async function evaluateToolGates(params: ToolGateParams): Promise<boolean
     return true;
   }
 
+  // ── Skill auto-test gate — nudge executor to test skill before completing ──
+  if (toolName === "advance-phase" && agentId === "executor" && state.skillCreatedNotTested) {
+    createLog("warn", "orchestrator", `Skill auto-test gate: executor called advance-phase after create-skill without testing`, {}, runId).catch(() => {});
+    addToolResult(messages, toolCallId, {
+      success: false,
+      error: "You just created a skill but haven't tested it yet. Follow the skill's instructions yourself — execute each step using your tools to verify it works. If any step fails or returns unexpected results, you MUST call edit-skill to fix the instructions before completing. Do not report problems to the user — fix them yourself. Only call advance-phase (to 'complete') after the test passes.",
+    });
+    await recordStep("tool_result", {
+      toolCallId,
+      name: "advance-phase",
+      result: { success: false, error: "Skill auto-test gate — skill created but not tested" },
+      agent: agentId,
+    });
+    // One-shot nudge — clear flag so it doesn't block indefinitely
+    state.skillCreatedNotTested = false;
+    return true;
+  }
+
   // ── Browser verification gate — force snapshot before completing browser tasks ──
   if (toolName === "advance-phase" && agentId === "executor" && state.browserToolsUsed && state.advancePhaseAttempts === 0) {
     state.advancePhaseAttempts++;

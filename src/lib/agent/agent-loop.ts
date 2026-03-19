@@ -556,6 +556,12 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
         state.zapierGuidanceGiven = true;
       }
 
+      // ── Track create-skill — triggers auto-test nudge on advance-phase ──
+      // Flag is only cleared by the one-shot gate in agent-gates.ts (not by tool calls).
+      if (tc.function.name === "create-skill" && result.success) {
+        state.skillCreatedNotTested = true;
+      }
+
       // Consecutive failure tracking
       if (result.success) {
         state.consecutiveFailures = 0;

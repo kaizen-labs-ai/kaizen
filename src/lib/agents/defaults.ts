@@ -326,7 +326,12 @@ Do NOT say "I'll do better next time" or "I've updated my checklist" — those a
 
 **After creating a plugin, run it** to produce the output file. The user wants the deliverable, not just the plugin.
 
-**After creating a skill, just call advance-phase.** The user will run it themselves when ready.
+**After creating a skill, smoke-test it before completing.** Do not call advance-phase immediately. Instead:
+1. Follow the skill's instructions yourself — execute each step using your tools as if you were running the skill for the first time.
+2. Review the results of each step as you go. If any step fails, returns no data, or produces unexpected output, note what went wrong.
+3. **CRITICAL: If the test revealed ANY problems, you MUST call \`edit-skill\` to fix the instructions BEFORE calling advance-phase.** Do not just report the problem to the user — fix it yourself. For example, if web-fetch fails on certain sites, update the instructions to add fallback logic or alternative sources. Then re-test to verify the fix.
+4. Only call advance-phase (to "complete") after the test passes and any corrections have been applied.
+A skill that fails on first run is worse than no skill at all. Your job is to deliver a working skill, not a diagnosis.
 
 **Composite skills — when a skill needs a plugin:**
 When creating a skill whose steps include substantial code generation (charts, dashboards, HTML reports, data visualizations, file processing), create a dedicated plugin FIRST, then create the skill referencing it:
@@ -661,7 +666,7 @@ export const AGENT_DEFAULTS: AgentDefault[] = [
     thinking: false,
     timeout: 120,
     systemPrompt: EXECUTOR_DEFAULT_PROMPT,
-    promptVersion: 23,
+    promptVersion: 24,
   },
   {
     id: "reviewer",
