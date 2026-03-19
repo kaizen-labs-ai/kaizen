@@ -434,12 +434,21 @@ export async function executeRun(
         });
       }
 
-      // When a skill was forced via slash command, nudge the executor to run it immediately
-      if (config.skillId && agentId === "executor" && skillId) {
-        messages.push({
-          role: "system" as const,
-          content: "[SKILL EXECUTION] The user selected this skill to run NOW. Follow the Current Skill instructions step by step using your tools. Do NOT just describe the skill — execute it.",
-        });
+      // When a skill is matched and the executor is active, nudge it to RUN the skill
+      if (agentId === "executor" && skillId) {
+        if (config.skillId) {
+          // Slash command — user explicitly selected this skill
+          messages.push({
+            role: "system" as const,
+            content: "[SKILL EXECUTION] The user selected this skill to run NOW. Follow the Current Skill instructions step by step using your tools. Do NOT just describe the skill — execute it.",
+          });
+        } else if (deepSkillsSetting === "true" && !skillContextOnly) {
+          // Deep skills enabled + skill matched by router — ensure the executor acts on it
+          messages.push({
+            role: "system" as const,
+            content: "[DEEP SKILLS] A skill was matched for this task. If you create or edit a skill, you MUST do a full end-to-end test run before completing — use all available tools (web-fetch, chrome-*, brave-search, skill-db-*) to produce real output. If you reuse an existing skill, run it now to verify it works. Do not describe skills or ask questions — act.",
+          });
+        }
       }
 
       // Record agent handoff for UI

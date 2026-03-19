@@ -297,7 +297,7 @@ export async function evaluateToolGates(params: ToolGateParams): Promise<boolean
     createLog("warn", "orchestrator", `Skill auto-test gate: executor called advance-phase after create/edit-skill without testing`, {}, runId).catch(() => {});
     addToolResult(messages, toolCallId, {
       success: false,
-      error: "You just created or edited a skill but haven't tested it yet. Follow the skill's instructions yourself — execute each step using your tools to verify it works. If any step fails or returns unexpected results, you MUST call edit-skill to fix the instructions before completing. Do not report problems to the user — fix them yourself. Only call advance-phase (to 'complete') after the test passes.",
+      error: "You created or edited a skill but haven't done a full end-to-end test. Execute EVERY step in the skill instructions now — call the actual tools (web-fetch, brave-search, chrome-*, skill-db-execute, file-write, etc.) to produce real output. Partial checks are not enough. If a step fails, fix it yourself (try alternative approaches, update instructions via edit-skill). Do NOT ask the user — be autonomous. Only call advance-phase after the skill has produced its expected output (DB entries, files, etc.).",
     });
     await recordStep("tool_result", {
       toolCallId,

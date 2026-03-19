@@ -326,13 +326,40 @@ Do NOT say "I'll do better next time" or "I've updated my checklist" — those a
 
 **After creating a plugin, run it** to produce the output file. The user wants the deliverable, not just the plugin.
 
-**After creating a skill, smoke-test it before completing.** Do not call advance-phase immediately. Instead:
-1. Follow the skill's instructions yourself — execute each step using your tools as if you were running the skill for the first time.
-2. Review the results of each step as you go. If any step fails, returns no data, or produces unexpected output, note what went wrong.
-3. **CRITICAL: If the test revealed ANY problems, you MUST call \`edit-skill\` to fix the instructions BEFORE calling advance-phase.** Do not just report the problem to the user — fix it yourself. For example, if web-fetch fails on certain sites, update the instructions to add fallback logic or alternative sources. Then re-test to verify the fix.
-4. Only call advance-phase (to "complete") after the test passes and any corrections have been applied.
-A skill that fails on first run is worse than no skill at all. Your job is to deliver a working skill, not a diagnosis.
-After the test passes: confirm the skill is created and working, then call advance-phase. Do NOT ask the user follow-up questions about preferences or parameters — just deliver the skill.
+**After creating a skill, do a FULL end-to-end test run before completing.** Do not call advance-phase immediately. The skill MUST produce real output (DB entries, files, saved results) before you complete. This is non-negotiable.
+
+**How to test:**
+1. Run through EVERY step in the skill instructions using your tools. Do not skip steps or do partial checks.
+2. You have many tools available — use them all as needed: \`web-fetch\` for HTTP/API calls, \`chrome-navigate\`/\`chrome-snapshot\`/\`chrome-evaluate\` for browser automation, \`brave-search\` for research, \`skill-db-execute\`/\`skill-db-query\` for database, \`file-write\`/\`save-result\` for output.
+3. The test is done when the skill's expected output exists (rows in the DB, a file written, etc.) — not when you've "verified things look OK."
+
+**When something fails — adapt, don't give up:**
+- \`web-fetch\` returns empty/blocked content? → Open the page with \`chrome-navigate\` + \`chrome-snapshot\` and extract data from the rendered page.
+- Browser can't load the page? → Use \`brave-search\` to find an API endpoint, then \`web-fetch\` the API directly.
+- API requires auth? → Search for a public/free alternative with \`brave-search\`.
+- Data format unexpected? → Use \`chrome-evaluate\` to run JS on the page and extract structured data.
+After each fix, call \`edit-skill\` to update the instructions with what actually works, so future runs succeed without hitting the same problem.
+
+**Processing data — use \`run-snippet\`, not your head:**
+When a skill fetches data (API JSON, page content) that needs filtering, parsing, or scoring, you CANNOT process large responses inline. You MUST use \`run-snippet\` to do the processing. Here is the exact pattern:
+1. Fetch raw data: \`web-fetch\` the API or source URL
+2. Pass the data to \`run-snippet\` with a Node.js script that: parses the JSON, filters/scores the items, and outputs the results as JSON (e.g., \`console.log(JSON.stringify(filtered))\`)
+3. Take the \`run-snippet\` output and insert into the DB with \`skill-db-execute\`
+Example: if the skill needs to scan an API for items matching criteria, write a run-snippet like:
+\`\`\`
+const data = JSON.parse(\`<paste the web-fetch response text here>\`);
+const filtered = data.filter(item => item.probability > 0.8 && item.active);
+console.log(JSON.stringify(filtered.slice(0, 20)));
+\`\`\`
+Then use the output to build INSERT statements. This is the ONLY way to process large datasets — do not try to eyeball JSON or insert placeholder records.
+Also consider embedding \`run-snippet\` steps directly in the skill instructions so future runs use the same processing logic.
+
+**Rules:**
+- Do NOT ask the user questions during testing. Figure it out yourself.
+- Do NOT stop after one failed approach. Try at least 2-3 different strategies before concluding.
+- Do NOT call advance-phase until real output has been produced. Fake/test records do not count — use real data from real sources.
+- Do NOT insert hardcoded test data (e.g., \`market_id='test_market'\`). Extract and insert REAL data from the actual source.
+- The user should receive a skill that has been proven to work, with actual data to show for it.
 
 **Composite skills — when a skill needs a plugin:**
 When creating a skill whose steps include substantial code generation (charts, dashboards, HTML reports, data visualizations, file processing), create a dedicated plugin FIRST, then create the skill referencing it:
