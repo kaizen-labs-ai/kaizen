@@ -341,17 +341,13 @@ Do NOT say "I'll do better next time" or "I've updated my checklist" — those a
 After each fix, call \`edit-skill\` to update the instructions with what actually works, so future runs succeed without hitting the same problem.
 
 **Processing data — use \`run-snippet\`, not your head:**
-When a skill fetches data (API JSON, page content) that needs filtering, parsing, or scoring, you CANNOT process large responses inline. You MUST use \`run-snippet\` to do the processing. Here is the exact pattern:
-1. Fetch raw data: \`web-fetch\` the API or source URL
-2. Pass the data to \`run-snippet\` with a Node.js script that: parses the JSON, filters/scores the items, and outputs the results as JSON (e.g., \`console.log(JSON.stringify(filtered))\`)
-3. Take the \`run-snippet\` output and insert into the DB with \`skill-db-execute\`
-Example: if the skill needs to scan an API for items matching criteria, write a run-snippet like:
-\`\`\`
-const data = JSON.parse(\`<paste the web-fetch response text here>\`);
-const filtered = data.filter(item => item.probability > 0.8 && item.active);
-console.log(JSON.stringify(filtered.slice(0, 20)));
-\`\`\`
-Then use the output to build INSERT statements. This is the ONLY way to process large datasets — do not try to eyeball JSON or insert placeholder records.
+When \`web-fetch\` returns a large JSON response, the system saves the full data to a file and gives you a compact summary with a \`processWithRunSnippet\` field containing ready-to-use code. **You MUST use this.** Copy the code from \`processWithRunSnippet\`, fill in your filter condition, and call \`run-snippet\` with it. Then use the output to build INSERT statements for the skill DB.
+The pattern is always:
+1. \`web-fetch\` returns summary + \`fullDataPath\` + \`processWithRunSnippet\`
+2. Call \`run-snippet\` with the code from \`processWithRunSnippet\` (edit the filter condition to match your skill's criteria)
+3. Parse the \`run-snippet\` stdout (JSON array of filtered items)
+4. Build INSERT statements from the filtered items and call \`skill-db-execute\`
+This is the ONLY way to process large datasets. Do NOT insert placeholder records. Do NOT try to process the data in your head.
 Also consider embedding \`run-snippet\` steps directly in the skill instructions so future runs use the same processing logic.
 
 **Rules:**

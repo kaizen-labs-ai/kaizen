@@ -62,24 +62,47 @@ export async function webFetchExecutor(
     if (responseBody.length > LARGE_JSON_THRESHOLD) {
       try {
         const parsed = JSON.parse(responseBody);
-        if (Array.isArray(parsed) && parsed.length > 3) {
+        // Handle both top-level arrays and objects with a nested data/results/items array
+        const items: unknown[] | null = Array.isArray(parsed) ? parsed
+          : (Array.isArray(parsed?.data) ? parsed.data
+          : (Array.isArray(parsed?.results) ? parsed.results
+          : (Array.isArray(parsed?.items) ? parsed.items : null)));
+        if (items && items.length > 3) {
           const tmpDir = path.join(process.cwd(), "workspace", "tmp");
           await fs.mkdir(tmpDir, { recursive: true });
           const tmpFile = path.join(tmpDir, `web-fetch-${Date.now()}.json`);
           await fs.writeFile(tmpFile, responseBody, "utf-8");
           const safePath = tmpFile.replace(/\\/g, "/");
 
-          const sample = parsed.slice(0, 2);
-          const fields = parsed[0] && typeof parsed[0] === "object" ? Object.keys(parsed[0]) : [];
+          const sample = items.slice(0, 2);
+          const firstItem = items[0] as Record<string, unknown> | undefined;
+          const fields = firstItem && typeof firstItem === "object" ? Object.keys(firstItem) : [];
+
+          // Determine how to access the array in code (top-level vs nested)
+          const isNested = !Array.isArray(parsed);
+          const nestedKey = Array.isArray(parsed?.data) ? "data" : Array.isArray(parsed?.results) ? "results" : Array.isArray(parsed?.items) ? "items" : "";
+          const accessExpr = isNested ? `raw.${nestedKey}` : "raw";
+
+          // Build a concrete run-snippet example using actual field names
+          const numericFields = fields.filter(f => {
+            const val = firstItem?.[f];
+            return typeof val === "number" || (typeof val === "string" && !isNaN(Number(val)) && val.length < 20 && val !== "");
+          }).slice(0, 3);
+          const stringFields = fields.filter(f => typeof firstItem?.[f] === "string" && String(firstItem[f]).length < 100).slice(0, 3);
+          const selectFields = [...new Set([...stringFields, ...numericFields])].slice(0, 5);
+          const mapExpr = selectFields.length > 0
+            ? `.map(item => ({ ${selectFields.map(f => `${f}: item.${f}`).join(", ")} }))`
+            : "";
+
           return {
             success: true,
             output: {
               status: res.status,
-              summary: `JSON array with ${parsed.length} items (${Math.round(responseBody.length / 1024)}KB).`,
+              summary: `JSON ${isNested ? "object with " + nestedKey + " array of " : "array with "}${items.length} items (${Math.round(responseBody.length / 1024)}KB). Full data saved to file — use run-snippet to read and process it.`,
               fields: fields.slice(0, 25),
               sampleItems: sample,
               fullDataPath: safePath,
-              hint: `Full data saved to file. Use run-snippet to process:\nconst data = JSON.parse(require("fs").readFileSync("${safePath}", "utf-8"));\nconst filtered = data.filter(item => /* your criteria */);\nconsole.log(JSON.stringify(filtered));`,
+              processWithRunSnippet: `const raw = JSON.parse(require("fs").readFileSync("${safePath}", "utf-8"));\nconst items = ${accessExpr};\nconst results = items.filter(item => /* add your filter condition here */)${mapExpr};\nconsole.log(JSON.stringify(results.slice(0, 20)));`,
             },
           };
         }
