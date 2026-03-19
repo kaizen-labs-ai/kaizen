@@ -73,9 +73,14 @@ export function getToolsForAgent(
       return allTools.filter((t) => t.name === "advance-phase");
     case "executor":
       if (complexity === "simple") {
-        let filtered = allTools.filter((t) => !ARTIFACT_TOOLS.has(t.name));
+        let filtered = allTools;
         if (skillMatched) {
+          // Skill-matched: keep artifact tools (skill may need file-write/save-result)
+          // but strip plugin creation tools since we're running a skill, not creating one
           filtered = filtered.filter((t) => !PLUGIN_TOOLS.has(t.name));
+        } else {
+          // No skill: strip artifact tools for simple ad-hoc tasks
+          filtered = filtered.filter((t) => !ARTIFACT_TOOLS.has(t.name));
         }
         return filtered;
       }

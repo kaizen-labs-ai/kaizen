@@ -96,10 +96,15 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
     // After loop force-stop, strip tools to advance-phase only.
     // After pipeline failure, strip code tools to prevent retry loops.
     // After tab-cycle detection, strip browser tools to force synthesis.
+    // After consecutive-fail-stop, strip the failing tool to prevent further retries.
     let iterationTools = config.tools;
     if (state.loopWarningCount >= 3) {
       iterationTools = config.tools.filter(
         (t) => t.function.name === "advance-phase"
+      );
+    } else if (state.failingToolToStrip) {
+      iterationTools = config.tools.filter(
+        (t) => t.function.name !== state.failingToolToStrip
       );
     } else if (state.tabCycleNudgeFired) {
       iterationTools = config.tools.filter(
@@ -556,6 +561,18 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
         state.consecutiveFailures = 0;
       } else {
         state.consecutiveFailures++;
+        // Tool confusion hint: file-read with ENOENT → suggest file-write
+        if (tc.function.name === "file-read" && typeof result.error === "string" && result.error.includes("ENOENT")) {
+          result.error += "\n\nHint: If you are trying to CREATE or WRITE a file, use the `file-write` tool instead. `file-read` only reads existing files.";
+        }
+      }
+
+      // Same-tool-name consecutive call tracking (catches loops with varying args)
+      if (tc.function.name === state.consecutiveSameToolName) {
+        state.consecutiveSameToolCount++;
+      } else {
+        state.consecutiveSameToolName = tc.function.name;
+        state.consecutiveSameToolCount = 1;
       }
 
       // Record tool result step
@@ -621,9 +638,20 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
     if (state.consecutiveFailures >= CONSECUTIVE_FAIL_STOP) {
       createLog("warn", "orchestrator", `[${config.agentId}] ${CONSECUTIVE_FAIL_STOP} consecutive failures — stopping`, {}, config.context.runId).catch(() => {});
       addGuardrailWarning(messages, "consecutive_fail_stop", { limit: CONSECUTIVE_FAIL_STOP });
-      // Let the model respond once more (it'll produce text or call advance-phase)
+      // Hard guardrail: strip the tool that's failing to prevent further retries
+      if (state.consecutiveSameToolName && state.consecutiveSameToolName !== "advance-phase") {
+        state.failingToolToStrip = state.consecutiveSameToolName;
+        createLog("warn", "orchestrator", `[${config.agentId}] Stripping tool "${state.failingToolToStrip}" after ${CONSECUTIVE_FAIL_STOP} consecutive failures`, {}, config.context.runId).catch(() => {});
+      }
     } else if (state.consecutiveFailures >= CONSECUTIVE_FAIL_WARN) {
       addGuardrailWarning(messages, "consecutive_fail_warn");
+    }
+
+    // ── Same-tool-name loop detection (catches varied-argument loops) ──
+    if (state.consecutiveSameToolCount >= LOOP_THRESHOLD && state.consecutiveSameToolName !== "chrome-snapshot") {
+      addGuardrailWarning(messages, "tool_loop");
+      state.loopWarningCount++;
+      state.consecutiveSameToolCount = 0; // Reset so warning fires once per burst
     }
 
     // ── Tool call loop detection (excludes chrome-snapshot) ──

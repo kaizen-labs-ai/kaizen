@@ -178,6 +178,11 @@ export interface AgentLoopState {
   tabSelectHistory: string[];
   /** Whether the tab-cycle guardrail has already fired (fires at most once) */
   tabCycleNudgeFired: boolean;
+  /** Tracks consecutive calls to the same tool name (regardless of args) */
+  consecutiveSameToolName: string | null;
+  consecutiveSameToolCount: number;
+  /** Tool name to strip after consecutive-fail-stop fires (hard guardrail) */
+  failingToolToStrip: string | null;
 }
 
 export function createAgentLoopState(): AgentLoopState {
@@ -208,6 +213,9 @@ export function createAgentLoopState(): AgentLoopState {
     plannerContextResolved: false,
     tabSelectHistory: [],
     tabCycleNudgeFired: false,
+    consecutiveSameToolName: null,
+    consecutiveSameToolCount: 0,
+    failingToolToStrip: null,
   };
 }
 
