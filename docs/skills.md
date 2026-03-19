@@ -92,6 +92,24 @@ Each skill can have its own SQLite database for persistent data storage. The age
 
 Access the skill database from the **Database** tab in the skill detail page.
 
+## Deep Skills
+
+When **Deep Skills** is enabled (Settings > Agents > Executor), the agent automatically smoke-tests every skill it creates or edits before delivering it to you. The flow is:
+
+1. **Create or edit** the skill
+2. **Smoke-test** — the agent follows the skill's instructions step by step, using the actual tools (search, fetch, write, etc.)
+3. **Self-correct** — if any step fails or returns unexpected results, the agent calls `edit-skill` to fix the instructions
+4. **Retest** — the agent runs through the updated instructions to verify the fix
+5. **Deliver** — only after the test passes does the agent complete the task
+
+This means skills are validated before you ever run them. File outputs produced during the smoke test are hidden — only the final verified output is shown to you.
+
+Deep Skills is enabled by default. You can toggle it off in **Settings > Agents > Executor** if you prefer the faster create-and-deliver flow without testing.
+
+{% hint style="info" %}
+Deep Skills adds a few seconds to skill creation but significantly reduces the chance of delivering a broken skill. It is especially useful when skills involve external APIs or multi-step tool chains where failures are common.
+{% endhint %}
+
 ## Self-Improvement
 
 Skills improve over time through memory. When a skill runs, insights and learnings from the interaction are persisted to memory. The next time the skill runs, it benefits from the previous experience. Over time, skills get more reliable and effective.

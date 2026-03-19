@@ -356,7 +356,8 @@ export async function executeRun(
       ]);
 
       // Get filtered tools for this agent
-      const agentDbTools = getToolsForAgent(agentId, dbTools, complexity, !!skillId, currentPhase);
+      const deepSkillsSetting = agentId === "executor" ? await getSetting("deep_skills", "false") : "false";
+      const agentDbTools = getToolsForAgent(agentId, dbTools, complexity, !!skillId, currentPhase, deepSkillsSetting === "true");
       let toolDefs: ToolDefinition[] = agentDbTools.map((t) => ({
         type: "function" as const,
         function: {
@@ -430,6 +431,14 @@ export async function executeRun(
         messages.push({
           role: "system" as const,
           content: "[INTERACTIVE PLANNING MODE]\nPresent soft, user-friendly approach options. Output a plan_proposal JSON and do NOT call advance-phase.",
+        });
+      }
+
+      // When a skill was forced via slash command, nudge the executor to run it immediately
+      if (config.skillId && agentId === "executor" && skillId) {
+        messages.push({
+          role: "system" as const,
+          content: "[SKILL EXECUTION] The user selected this skill to run NOW. Follow the Current Skill instructions step by step using your tools. Do NOT just describe the skill — execute it.",
         });
       }
 

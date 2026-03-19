@@ -20,6 +20,15 @@ interface AgentItem {
 export function AgentsPageClient({ initialData }: { initialData: AgentItem[] }) {
   const router = useRouter();
 
+  const { data: settings } = useQuery<Record<string, string>>({
+    queryKey: ["settings"],
+    queryFn: async () => { const res = await fetch("/api/settings"); return res.json(); },
+    staleTime: 0,
+  });
+
+  const deepSkillsEnabled = settings?.deep_skills === "true";
+  const interactivePlanningEnabled = settings?.interactive_planning === "true";
+
   const { data: agents = [], isLoading: loading } = useQuery<AgentItem[]>({
     queryKey: ["agents"],
     queryFn: async () => {
@@ -80,6 +89,16 @@ export function AgentsPageClient({ initialData }: { initialData: AgentItem[] }) 
                   {agent.thinking && (
                     <Badge variant="secondary" className="text-xs shrink-0">
                       thinking
+                    </Badge>
+                  )}
+                  {agent.id === "executor" && deepSkillsEnabled && (
+                    <Badge variant="secondary" className="text-xs shrink-0">
+                      deep skills
+                    </Badge>
+                  )}
+                  {agent.id === "planner" && interactivePlanningEnabled && (
+                    <Badge variant="secondary" className="text-xs shrink-0">
+                      interactive
                     </Badge>
                   )}
                 </div>

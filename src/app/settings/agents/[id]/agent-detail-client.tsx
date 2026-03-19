@@ -40,6 +40,7 @@ export function AgentDetailClient({ initialData, id }: { initialData: AgentConfi
   const [loading, setLoading] = useState(!initialData);
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [interactivePlanning, setInteractivePlanning] = useState(false);
+  const [deepSkills, setDeepSkills] = useState(false);
 
   // Track last-saved values to avoid unnecessary saves on blur
   const savedRef = useRef<Record<string, unknown>>(initialData ? {
@@ -86,13 +87,14 @@ export function AgentDetailClient({ initialData, id }: { initialData: AgentConfi
     if (!initialData) loadAgent();
   }, [loadAgent]);
 
-  // Load interactive planning setting for planner agent
+  // Load agent-specific settings
   useEffect(() => {
-    if (id !== "planner") return;
+    if (id !== "planner" && id !== "executor") return;
     fetch("/api/settings")
       .then((res) => res.json())
       .then((data) => {
-        if (data.interactive_planning === "true") setInteractivePlanning(true);
+        if (id === "planner" && data.interactive_planning === "true") setInteractivePlanning(true);
+        if (id === "executor" && data.deep_skills === "true") setDeepSkills(true);
       })
       .catch(() => {});
   }, [id]);
@@ -326,6 +328,33 @@ export function AgentDetailClient({ initialData, id }: { initialData: AgentConfi
                     body: JSON.stringify({ key: "interactive_planning", value: String(value) }),
                   });
                   toast.success(value ? "Interactive planning enabled" : "Interactive planning disabled");
+                } catch {
+                  toast.error("Failed to save");
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {agent.id === "executor" && (
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Deep Skills</Label>
+              <p className="text-xs text-muted-foreground">
+                After creating a skill, smoke-test it by running each step, then self-correct any issues before delivering
+              </p>
+            </div>
+            <Switch
+              checked={deepSkills}
+              onCheckedChange={async (value) => {
+                setDeepSkills(value);
+                try {
+                  await fetch("/api/settings", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ key: "deep_skills", value: String(value) }),
+                  });
+                  toast.success(value ? "Deep Skills enabled" : "Deep Skills disabled");
                 } catch {
                   toast.error("Failed to save");
                 }

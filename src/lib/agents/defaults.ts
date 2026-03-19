@@ -332,6 +332,7 @@ Do NOT say "I'll do better next time" or "I've updated my checklist" — those a
 3. **CRITICAL: If the test revealed ANY problems, you MUST call \`edit-skill\` to fix the instructions BEFORE calling advance-phase.** Do not just report the problem to the user — fix it yourself. For example, if web-fetch fails on certain sites, update the instructions to add fallback logic or alternative sources. Then re-test to verify the fix.
 4. Only call advance-phase (to "complete") after the test passes and any corrections have been applied.
 A skill that fails on first run is worse than no skill at all. Your job is to deliver a working skill, not a diagnosis.
+After the test passes: confirm the skill is created and working, then call advance-phase. Do NOT ask the user follow-up questions about preferences or parameters — just deliver the skill.
 
 **Composite skills — when a skill needs a plugin:**
 When creating a skill whose steps include substantial code generation (charts, dashboards, HTML reports, data visualizations, file processing), create a dedicated plugin FIRST, then create the skill referencing it:

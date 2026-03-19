@@ -59,6 +59,7 @@ export function getToolsForAgent(
   complexity?: "simple" | "complex" | "image_generation",
   skillMatched?: boolean,
   phase?: string,
+  deepSkills?: boolean,
 ) {
   switch (agentId) {
     case "router":
@@ -74,12 +75,14 @@ export function getToolsForAgent(
     case "executor":
       if (complexity === "simple") {
         let filtered = allTools;
-        if (skillMatched) {
-          // Skill-matched: keep artifact tools (skill may need file-write/save-result)
-          // but strip plugin creation tools since we're running a skill, not creating one
-          filtered = filtered.filter((t) => !PLUGIN_TOOLS.has(t.name));
+        if (skillMatched || deepSkills) {
+          // Skill-matched or deep skills: keep artifact tools (skill may need file-write/save-result
+          // for execution or smoke-testing). Strip plugin creation tools when running a skill.
+          if (skillMatched) {
+            filtered = filtered.filter((t) => !PLUGIN_TOOLS.has(t.name));
+          }
         } else {
-          // No skill: strip artifact tools for simple ad-hoc tasks
+          // No skill, no deep skills: strip artifact tools for simple ad-hoc tasks
           filtered = filtered.filter((t) => !ARTIFACT_TOOLS.has(t.name));
         }
         return filtered;

@@ -7,6 +7,7 @@ import type { ChatMessage, ToolDefinition } from "@/lib/openrouter/client";
 import { callOpenRouterWithRetry } from "@/lib/openrouter/retry";
 import { executeTool } from "@/lib/tools/executor";
 import { createLog } from "@/lib/logs/logger";
+import { getSetting } from "@/lib/settings/registry";
 import { toAbsolutePath } from "@/lib/workspace";
 import { promises as fs } from "node:fs";
 import { createAgentLoopState, type AgentLoopState } from "./schemas";
@@ -252,6 +253,11 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
       } catch {
         toolArgs = {};
         createLog("warn", "orchestrator", `Failed to parse tool args for ${tc.function.name}`, { raw: tc.function.arguments?.slice(0, 200) }, config.context.runId).catch(() => {});
+      }
+
+      // ── Deep skills: mark file outputs as intermediate during smoke-test ──
+      if (state.skillCreatedNotTested && (tc.function.name === "file-write" || tc.function.name === "save-result")) {
+        toolArgs.intermediate = true;
       }
 
       const matchingTool = dbToolMap.get(tc.function.name);
@@ -556,10 +562,13 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
         state.zapierGuidanceGiven = true;
       }
 
-      // ── Track create-skill — triggers auto-test nudge on advance-phase ──
+      // ── Track create-skill / edit-skill — triggers auto-test nudge on advance-phase (deep skills) ──
       // Flag is only cleared by the one-shot gate in agent-gates.ts (not by tool calls).
-      if (tc.function.name === "create-skill" && result.success) {
-        state.skillCreatedNotTested = true;
+      if ((tc.function.name === "create-skill" || tc.function.name === "edit-skill") && result.success) {
+        const deepSkills = await getSetting("deep_skills", "false");
+        if (deepSkills === "true") {
+          state.skillCreatedNotTested = true;
+        }
       }
 
       // Consecutive failure tracking

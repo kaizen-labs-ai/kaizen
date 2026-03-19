@@ -10,6 +10,7 @@ Go to **Settings > Agents** (`/settings/agents`) to see all agents. Each entry s
 - Current model
 - Whether extended thinking is enabled
 - Extra model badges (image, file, audio, video models)
+- Feature badges: **deep skills** (Executor), **interactive** (Planner) — shown when enabled
 
 ## Agent Settings
 
@@ -49,6 +50,10 @@ Each agent has a system prompt that defines its behavior and capabilities. You c
 ### Interactive Planning
 
 The Planner agent has a special **Interactive Planning** toggle. When enabled, the planner proposes its plan to you for approval before execution proceeds. When disabled, planning happens automatically.
+
+### Deep Skills
+
+The Executor agent has a **Deep Skills** toggle. When enabled, the executor automatically smoke-tests every skill it creates or edits — following the instructions step by step with real tools, self-correcting any issues via `edit-skill`, and only delivering after the test passes. Enabled by default. See [Skills > Deep Skills](../skills.md#deep-skills) for details.
 
 ## Default Agents
 

@@ -34,6 +34,7 @@ export const SETTING_KEYS = {
   VOICE_DICTATION_SHORTCUT: "voice_dictation_shortcut",
   BROWSER_INCOGNITO: "browser_incognito",
   INTERACTIVE_PLANNING: "interactive_planning",
+  DEEP_SKILLS: "deep_skills",
 } as const;
 
 export const SETTING_DEFAULTS: Record<string, string> = {
@@ -47,6 +48,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   [SETTING_KEYS.VOICE_DICTATION_SHORTCUT]: "",
   [SETTING_KEYS.BROWSER_INCOGNITO]: "false",
   [SETTING_KEYS.INTERACTIVE_PLANNING]: "false",
+  [SETTING_KEYS.DEEP_SKILLS]: "true",
 };
 
 // Current code-level voice prompt version. Bump this when changing the default prompt.
