@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
   DollarSign,
   Zap,
@@ -86,11 +86,11 @@ function formatDate(dateStr: string): string {
 // ── Chart colors ───────────────────────────────────────────────
 
 const CHART_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ];
 
 // ── Component ──────────────────────────────────────────────────
@@ -104,6 +104,7 @@ export function UsagePageClient() {
       const res = await fetch(`/api/usage?range=${range}`);
       return res.json();
     },
+    placeholderData: keepPreviousData,
   });
 
   const summary = data?.summary;
@@ -218,8 +219,8 @@ export function UsagePageClient() {
                   <AreaChart data={daily} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                     <defs>
                       <linearGradient id="costGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={CHART_COLORS[0]} stopOpacity={0.3} />
-                        <stop offset="95%" stopColor={CHART_COLORS[0]} stopOpacity={0} />
+                        <stop offset="5%" stopColor={CHART_COLORS[0]} stopOpacity={0.5} />
+                        <stop offset="95%" stopColor={CHART_COLORS[0]} stopOpacity={0.05} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -275,7 +276,7 @@ export function UsagePageClient() {
                     <span className="text-right">Cost</span>
                   </div>
                   {byModel.map((m) => (
-                    <div key={m.model} className="grid grid-cols-5 gap-2 px-3 py-2 text-sm">
+                    <div key={m.model} className="grid grid-cols-5 gap-2 px-3 py-2 text-xs">
                       <span className="truncate font-medium" title={m.model}>
                         {shortenModel(m.model)}
                       </span>
@@ -285,10 +286,10 @@ export function UsagePageClient() {
                       <span className="text-right text-muted-foreground">
                         {formatTokens(m.tokens)}
                       </span>
-                      <span className="text-right font-mono text-muted-foreground">
+                      <span className="text-right text-muted-foreground">
                         {formatCost(m.calls > 0 ? m.cost / m.calls : 0)}
                       </span>
-                      <span className="text-right font-mono">
+                      <span className="text-right">
                         {formatCost(m.cost)}
                       </span>
                     </div>
@@ -314,10 +315,10 @@ export function UsagePageClient() {
               ) : (
                 <ChartContainer config={modelConfig} className="h-[250px] w-full">
                   <BarChart
-                    data={byModel.map((m, i) => ({
+                    data={byModel.map((m) => ({
                       name: shortenModel(m.model),
                       cost: m.cost,
-                      fill: CHART_COLORS[i % CHART_COLORS.length],
+                      fill: CHART_COLORS[0],
                     }))}
                     margin={{ top: 4, right: 4, bottom: 20, left: 4 }}
                   >
@@ -365,10 +366,10 @@ export function UsagePageClient() {
               ) : (
                 <ChartContainer config={agentConfig} className="h-[250px] w-full">
                   <BarChart
-                    data={byAgent.map((a, i) => ({
+                    data={byAgent.map((a) => ({
                       name: humanizeAgent(a.agentId),
                       cost: a.cost,
-                      fill: CHART_COLORS[i % CHART_COLORS.length],
+                      fill: CHART_COLORS[0],
                     }))}
                     margin={{ top: 4, right: 4, bottom: 20, left: 4 }}
                   >
