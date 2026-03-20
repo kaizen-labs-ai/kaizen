@@ -34,10 +34,10 @@ export interface UnverifiedClaim {
 }
 
 // Pre-compiled claim detection patterns (avoid recompiling on every call)
-const SKILL_MOD_RE1 = /\b(updated|modified|changed|integrated|edited|improved|upgraded|optimized|rewrit|refactor)\w*\b[^.!?\n]*\b(skill|skill['']s)\b/i;
-const SKILL_MOD_RE2 = /\b(skill)\b[^.!?\n]*\b(updated|modified|changed|integrated|edited|improved|upgraded|optimized|has been|is now)\b/i;
-const PLUGIN_MOD_RE1 = /\b(updated|modified|changed|integrated|edited|improved|upgraded|created|built|rewrit)\w*\b[^.!?\n]*\b(plugin|script)\b/i;
-const PLUGIN_MOD_RE2 = /\b(plugin|script)\b[^.!?\n]*\b(updated|modified|changed|integrated|edited|improved|created|built|has been|is now)\b/i;
+const SKILL_MOD_RE1 = /\b(updated|modified|changed|integrated|edited|improved|upgraded|optimized|rewrit|refactor|fixed|fix)\w*\b[^.!?\n]*\b(skill|skill['']s)\b/i;
+const SKILL_MOD_RE2 = /\b(skill)\b[^.!?\n]*\b(updated|modified|changed|integrated|edited|improved|upgraded|optimized|fixed|has been|is now)\b/i;
+const PLUGIN_MOD_RE1 = /\b(updated|modified|changed|integrated|edited|improved|upgraded|created|built|rewrit|fixed|fix)\w*\b[^.!?\n]*\b(plugin|script)\b/i;
+const PLUGIN_MOD_RE2 = /\b(plugin|script)\b[^.!?\n]*\b(updated|modified|changed|integrated|edited|improved|created|built|fixed|has been|is now)\b/i;
 const FILE_SAVE_RE = /\b(saved|exported|wrote|written|generated|created)\b[^.!?\n]*\b(file|report|csv|document|pdf)\b/i;
 
 export function verifyOutputClaims(text: string, toolNamesUsed: Set<string>, pluginNames: Set<string> = new Set()): UnverifiedClaim[] {
@@ -92,9 +92,9 @@ export function verifyOutputClaims(text: string, toolNamesUsed: Set<string>, plu
 }
 
 // Pre-compiled sanitization patterns (avoid recompiling on every call)
-const SANITIZE_SKILL_RE1 = /[^.!?\n]*\b(updated|modified|changed|integrated|edited|improved|upgraded|optimized|rewrit|refactor)\w*\b[^.!?\n]*\b(skill)\b[^.!?\n]*[.!?]?\s*/gi;
-const SANITIZE_SKILL_RE2 = /[^.!?\n]*\b(skill)\b[^.!?\n]*\b(updated|modified|changed|integrated|edited|improved|upgraded|optimized|has been|is now)\b[^.!?\n]*[.!?]?\s*/gi;
-const SANITIZE_PLUGIN_RE = /[^.!?\n]*\b(updated|modified|changed|integrated|edited|improved|upgraded|created|built|rewrit)\w*\b[^.!?\n]*\b(plugin|script)\b[^.!?\n]*[.!?]?\s*/gi;
+const SANITIZE_SKILL_RE1 = /[^.!?\n]*\b(updated|modified|changed|integrated|edited|improved|upgraded|optimized|rewrit|refactor|fixed|fix)\w*\b[^.!?\n]*\b(skill)\b[^.!?\n]*[.!?]?\s*/gi;
+const SANITIZE_SKILL_RE2 = /[^.!?\n]*\b(skill)\b[^.!?\n]*\b(updated|modified|changed|integrated|edited|improved|upgraded|optimized|fixed|has been|is now)\b[^.!?\n]*[.!?]?\s*/gi;
+const SANITIZE_PLUGIN_RE = /[^.!?\n]*\b(updated|modified|changed|integrated|edited|improved|upgraded|created|built|rewrit|fixed|fix)\w*\b[^.!?\n]*\b(plugin|script)\b[^.!?\n]*[.!?]?\s*/gi;
 const SANITIZE_FILE_RE = /[^.!?\n]*\b(saved|exported|wrote|written|generated|created)\b[^.!?\n]*\b(file|report|csv|document|pdf)\b[^.!?\n]*[.!?]?\s*/gi;
 
 /** Strip sentences containing false claims from output text. */
@@ -277,19 +277,28 @@ export async function evaluateToolGates(params: ToolGateParams): Promise<boolean
   }
 
   // ── Empty-work gate — reject advance-phase with 0 substantive tool calls ──
+  // Skip the gate when the executor has already generated substantial text (200+ chars).
+  // This is a safety net for when the router misclassifies a writing/drafting request
+  // as non-conversational — the executor shouldn't be forced to use tools when it
+  // has already composed a complete text response.
   if (toolName === "advance-phase" && agentId === "executor" && state.substantiveToolCalls === 0) {
-    createLog("warn", "orchestrator", `Empty-work gate: executor called advance-phase with 0 substantive tool calls`, {}, runId).catch(() => {});
-    addToolResult(messages, toolCallId, {
-      success: false,
-      error: "You have not done any work yet. Your response describes actions you intend to take, but you haven't actually taken them. Use your tools (web-fetch, chrome-*, run-snippet, file-write, save-result, etc.) to DO the work first, then call advance-phase when you're truly done.",
-    });
-    await recordStep("tool_result", {
-      toolCallId,
-      name: "advance-phase",
-      result: { success: false, error: "Empty-work gate — no substantive tool calls" },
-      agent: agentId,
-    });
-    return true;
+    const hasSubstantialText = state.agentRawText && state.agentRawText.length >= 200;
+    if (hasSubstantialText) {
+      createLog("info", "orchestrator", `Empty-work gate: bypassed — executor has substantial text response (${state.agentRawText!.length} chars)`, {}, runId).catch(() => {});
+    } else {
+      createLog("warn", "orchestrator", `Empty-work gate: executor called advance-phase with 0 substantive tool calls`, {}, runId).catch(() => {});
+      addToolResult(messages, toolCallId, {
+        success: false,
+        error: "You have not done any work yet. Your response describes actions you intend to take, but you haven't actually taken them. Use your tools (web-fetch, chrome-*, run-snippet, file-write, save-result, etc.) to DO the work first, then call advance-phase when you're truly done.",
+      });
+      await recordStep("tool_result", {
+        toolCallId,
+        name: "advance-phase",
+        result: { success: false, error: "Empty-work gate — no substantive tool calls" },
+        agent: agentId,
+      });
+      return true;
+    }
   }
 
   // ── Skill auto-test gate — nudge executor to test skill before completing ──

@@ -76,7 +76,7 @@ export function addNudge(
   });
   const nudge = agentId === "planner"
     ? "You must call the advance-phase tool to move forward. Please call it now."
-    : "Please proceed and use the available tools to complete this task.";
+    : "Please proceed and use the available tools to complete this task. If you have already presented options or content that requires the user's input before you can continue, call advance-phase now to finish and wait for their response.";
   messages.push({ role: "user", content: nudge });
 }
 

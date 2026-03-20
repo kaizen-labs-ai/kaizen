@@ -137,6 +137,12 @@ When "Recent Conversation" is provided, you MUST classify the new message IN CON
 - Greetings with no prior context: "hey", "how's it going?", "good morning"
 - Reactions to a completed task: "nice", "thanks!", "haha", "wow"
 - Feasibility questions (asking IF you can, not asking you to DO it): "is that something you can handle?", "could you do that?", "is that possible?"
+- Writing/drafting assistance where the user wants TEXT composed for them (no tools needed — just write it):
+  - "help me reply to this post", "draft a response to this email", "write a reply for me"
+  - "write me a bio", "draft an intro message", "compose a tweet about X"
+  - "rewrite this paragraph", "make this more professional", "summarize this for me"
+  - "help me write a cover letter", "draft a thank-you note"
+  - The key signal: the user provides content/context and wants the agent to COMPOSE text — not search, not fetch, not post anywhere. Just write.
 Set to false (default) for questions about Kaizen's features, capabilities, or setup — these need the gitbook-docs tool:
 - "what can you do?", "what tools do you have?", "how do skills work?", "what's the difference between X and Y?"
 - "can you schedule tasks?", "do you support Slack?", "how would I set that up?"
