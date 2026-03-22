@@ -207,6 +207,28 @@ export function SkillDetailClient({ initialData, id: paramId }: { initialData: S
     refetchOnWindowFocus: false,
   });
 
+  // SSE: live training status updates
+  useEffect(() => {
+    if (paramId === "new") return;
+    let es: EventSource | null = null;
+    let closed = false;
+    function connect() {
+      if (closed) return;
+      es = new EventSource("/api/events/training");
+      es.onmessage = (e) => {
+        try {
+          const event = JSON.parse(e.data);
+          if (event.skillId === paramId) {
+            queryClient.invalidateQueries({ queryKey: ["skill-training", paramId] });
+          }
+        } catch { /* ignore */ }
+      };
+      es.onerror = () => { es?.close(); if (!closed) setTimeout(connect, 3000); };
+    }
+    connect();
+    return () => { closed = true; es?.close(); };
+  }, [paramId, queryClient]);
+
   const [isNew, setIsNew] = useState(paramId === "new");
   const [skillId, setSkillId] = useState(paramId === "new" ? null : paramId);
   const [skill, setSkill] = useState<Skill | null>(paramId === "new" ? EMPTY_SKILL : (initialData ?? null));

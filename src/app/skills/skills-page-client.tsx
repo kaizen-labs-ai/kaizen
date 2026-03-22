@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -47,6 +47,22 @@ export function SkillsPageClient({ initialData }: { initialData: Skill[] }) {
     initialData,
     staleTime: 0,
   });
+
+  // SSE: live training status updates for badges
+  useEffect(() => {
+    let es: EventSource | null = null;
+    let closed = false;
+    function connect() {
+      if (closed) return;
+      es = new EventSource("/api/events/training");
+      es.onmessage = () => {
+        queryClient.invalidateQueries({ queryKey: ["skills"] });
+      };
+      es.onerror = () => { es?.close(); if (!closed) setTimeout(connect, 3000); };
+    }
+    connect();
+    return () => { closed = true; es?.close(); };
+  }, [queryClient]);
 
   const filtered = skills.filter(
     (s) =>
