@@ -22,7 +22,7 @@ Kaizen is an open-source AI automation agent that runs locally on your machine. 
 Most AI tools are stateless. They forget everything between sessions and repeat the same mistakes. Kaizen is different:
 
 - **It automates, not just chats.** Kaizen browses the web, fills out forms, calls APIs, runs code, and connects to thousands of apps to complete real tasks end-to-end.
-- **It learns.** After every run, insights and learnings are persisted to memory. The more you use it, the better it gets.
+- **It learns.** After every run, insights and learnings are persisted to memory. Enable **Deep Learning** on any skill and it automatically optimizes itself — analyzing results, tuning instructions, adding guardrails, even building new plugins — until it converges on peak performance.
 - **It's yours.** Runs entirely on your machine. No data leaves your environment except API calls to the model provider you choose.
 
 ## What Can Kaizen Do?
@@ -63,6 +63,7 @@ Skills are the core of Kaizen. They are reusable automations that the agent crea
 - **Sub-skills.** Skills can reference other skills, building complex multi-step workflows from simple building blocks.
 - **Scheduling.** Attach a cron schedule to any skill. Daily reports, weekly digests, hourly monitoring. Set it and forget it.
 - **Self-improving.** When something goes wrong, insights are persisted to memory. Next time, the skill runs better.
+- **Deep Learning.** Toggle on automated training and set a goal. After each run, a thinking-enabled Trainer agent analyzes performance, proposes surgical improvements, and applies them — climbing toward your objective epoch by epoch. Auto-rollback protects against regressions. When the skill plateaus at peak fitness, it's marked "Optimized" and training stops.
 
 ## Integrations
 
@@ -110,8 +111,9 @@ Kaizen uses **handoff orchestration**. Specialized agents pass work through a pi
 ## Features
 
 ### Agents & Intelligence
-- **Multi-agent pipeline** with Router, Planner, Executor, Reviewer, and Developer
+- **Multi-agent pipeline** with Router, Planner, Executor, Reviewer, Developer, and Trainer
 - **Self-improvement** through persistent memory that accumulates learnings across runs
+- **Deep Learning** — automated training pipeline that optimizes skills through iterative analysis, surgical mutations, fitness scoring, and convergence detection
 - **Smart guardrails** including loop detection, failure detection, grounding gates, and claim verification
 - **Multi-model** support through [OpenRouter](https://openrouter.ai/): Claude, GPT, Gemini, DeepSeek, and more
 
@@ -119,6 +121,7 @@ Kaizen uses **handoff orchestration**. Specialized agents pass work through a pi
 - **User memory** is a persistent profile that the agent maintains and compacts over time. It remembers your preferences, accounts, and how you like things done
 - **Working memory** provides per-objective context that improves the agent's approach across runs
 - **Learning loop** ensures insights from each run are merged into long-term memory
+- **Training epochs** track fitness over time with snapshots, auto-rollback, and convergence detection
 
 ### Interface
 - **Chat UI** with a clean dark mode interface built with shadcn/ui
