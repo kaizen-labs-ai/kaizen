@@ -129,3 +129,9 @@ Skills improve over time through memory. When a skill runs, insights and learnin
 {% hint style="info" %}
 Self-improvement relies on LLM-generated memory entries. Periodically review your skill's memory and guardrails to ensure the agent is learning the right lessons — LLMs can occasionally draw incorrect conclusions from a run.
 {% endhint %}
+
+## Deep Learning
+
+Deep Learning takes self-improvement further with an automated training pipeline that optimizes skills after each run. While self-improvement relies on passive memory, Deep Learning actively analyzes run results, hypothesizes improvements, and applies targeted mutations to the skill configuration — converging toward peak performance.
+
+See the full [Deep Learning](deep-learning.md) documentation for details on how to set up and use this feature.

@@ -7,6 +7,7 @@
 
 * [Chat Interface](chat-interface.md)
 * [Skills](skills.md)
+* [Deep Learning](deep-learning.md)
 * [Plugins](plugins.md)
 * [Schedules](schedules.md)
 * [Outputs & Artifacts](outputs.md)

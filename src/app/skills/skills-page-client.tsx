@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Plus, BookOpen, Shield, Search, ChevronRight } from "lucide-react";
+import { Plus, BookOpen, Shield, Search, ChevronRight, Brain, CircleCheck } from "lucide-react";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -30,6 +30,7 @@ interface Skill {
   enabled: boolean;
   createdBy: string;
   guardrails: Guardrail[];
+  dlStatus?: "idle" | "training" | "optimized" | null;
 }
 
 export function SkillsPageClient({ initialData }: { initialData: Skill[] }) {
@@ -146,6 +147,24 @@ export function SkillsPageClient({ initialData }: { initialData: Skill[] }) {
                         <Badge variant="outline" className="text-xs shrink-0">
                           <Shield className="mr-1 h-3 w-3" />
                           {skill.guardrails?.length}
+                        </Badge>
+                      )}
+                      {skill.dlStatus === "idle" && (
+                        <Badge variant="outline" className="text-xs shrink-0 border-blue-500/50 text-blue-600">
+                          <Brain className="mr-1 h-3 w-3" />
+                          Idle
+                        </Badge>
+                      )}
+                      {skill.dlStatus === "training" && (
+                        <Badge variant="outline" className="text-xs shrink-0 border-amber-500/50 text-amber-600 animate-pulse">
+                          <Brain className="mr-1 h-3 w-3" />
+                          Training
+                        </Badge>
+                      )}
+                      {skill.dlStatus === "optimized" && (
+                        <Badge variant="outline" className="text-xs shrink-0 border-green-500/50 text-green-600">
+                          <CircleCheck className="mr-1 h-3 w-3" />
+                          Optimized
                         </Badge>
                       )}
                     </div>

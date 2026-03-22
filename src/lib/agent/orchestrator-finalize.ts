@@ -79,6 +79,72 @@ export async function completeRun(
   }, runId).catch(() => {});
 
   await callbacks.onComplete(runId);
+
+  // ── Deep Learning trigger (async, non-blocking) ──
+  triggerTrainingIfEnabled(runId, objectiveId).catch(() => {});
+}
+
+// ── Deep Learning Hook ────────────────────────────────────────
+
+/**
+ * Check if the completed run's skill has Deep Learning enabled.
+ * If so, increment the run counter and trigger a training epoch
+ * when the threshold is met. Runs asynchronously — never blocks
+ * the main run completion flow.
+ */
+async function triggerTrainingIfEnabled(
+  runId: string,
+  objectiveId: string,
+): Promise<void> {
+  const objective = await prisma.objective.findUnique({
+    where: { id: objectiveId },
+    select: { skillId: true },
+  });
+  if (!objective?.skillId) return;
+
+  const skill = await prisma.skill.findUnique({
+    where: { id: objective.skillId },
+    select: { deepLearning: true },
+  });
+  if (!skill) return;
+
+  const { parseDeepLearningConfig } = await import("@/lib/training/types");
+  const config = parseDeepLearningConfig(skill.deepLearning);
+  if (!config.enabled || config.status === "optimized") return;
+
+  // Increment run counter
+  const newCount = config.runsSinceLastEpoch + 1;
+
+  // Check if threshold is met
+  if (newCount < config.trainEveryN) {
+    const fresh = await prisma.skill.findUnique({ where: { id: objective.skillId }, select: { deepLearning: true } });
+    const freshConfig = parseDeepLearningConfig(fresh?.deepLearning ?? "{}");
+    freshConfig.runsSinceLastEpoch = newCount;
+    await prisma.skill.update({
+      where: { id: objective.skillId },
+      data: { deepLearning: JSON.stringify(freshConfig) },
+    });
+    return;
+  }
+
+  // Reset counter and kick off training
+  const fresh = await prisma.skill.findUnique({ where: { id: objective.skillId }, select: { deepLearning: true } });
+  const freshConfig = parseDeepLearningConfig(fresh?.deepLearning ?? "{}");
+  freshConfig.runsSinceLastEpoch = 0;
+  await prisma.skill.update({
+    where: { id: objective.skillId },
+    data: { deepLearning: JSON.stringify(freshConfig) },
+  });
+
+  // Dynamic import to avoid circular deps (same pattern as scheduler.ts)
+  const { runTrainingEpoch } = await import("@/lib/training/trainer");
+  runTrainingEpoch(objective.skillId, runId).catch((err) => {
+    createLog(
+      "error",
+      "system",
+      `Training trigger failed for skill ${objective.skillId}: ${err instanceof Error ? err.message : String(err)}`,
+    ).catch(() => {});
+  });
 }
 
 // ── Error Handling ─────────────────────────────────────────────

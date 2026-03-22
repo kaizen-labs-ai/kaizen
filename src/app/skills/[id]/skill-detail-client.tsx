@@ -39,7 +39,7 @@ import {
   Plus, Trash2, Shield, Save, Paperclip, X, Wrench, Search, CodeXml,
   Image, FileText, FileCode, FileSpreadsheet, Film, Music, FileArchive, File,
   Undo2, Redo2, Bold, Italic, Heading, Link2, WrapText, KeyRound, Play,
-  GitBranch, Database, ChevronRight, Info,
+  GitBranch, Database, ChevronRight, Info, Brain, CircleCheck,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -185,6 +185,21 @@ export function SkillDetailClient({ initialData, id: paramId }: { initialData: S
     queryKey: ["skill-db-tables", paramId],
     queryFn: async () => {
       const res = await fetch(`/api/skills/${paramId}/db/tables`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: paramId !== "new",
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: dlData } = useQuery<{
+    config: { enabled: boolean; status: string; trainEveryN: number; convergenceThreshold: number; maxEpochs: number };
+    epochs: Array<{ id: string; epoch: number; status: string; fitness: number | null; hypothesis: string }>;
+    total: number;
+  }>({
+    queryKey: ["skill-training", paramId],
+    queryFn: async () => {
+      const res = await fetch(`/api/skills/${paramId}/training`);
       if (!res.ok) throw new Error("Failed");
       return res.json();
     },
@@ -1311,6 +1326,38 @@ export function SkillDetailClient({ initialData, id: paramId }: { initialData: S
                   </Badge>
                 ) : (
                   <span className="text-[10px] text-muted-foreground">No data</span>
+                )}
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+              </Link>
+            )}
+
+            {/* Deep Learning — standalone link */}
+            {!isNew && (
+              <Link
+                href={`/skills/${paramId}/training`}
+                className="flex items-center gap-2 mt-2 px-2.5 py-2 rounded-md border border-border hover:bg-accent/50 transition-colors cursor-pointer group"
+              >
+                <Brain className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium">Deep Learning</span>
+                <div className="flex-1" />
+                {dlData?.config?.status === "training" && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-amber-500/50 text-amber-600 animate-pulse">
+                    Training
+                  </Badge>
+                )}
+                {dlData?.config?.status === "optimized" && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-green-500/50 text-green-600">
+                    <CircleCheck className="mr-0.5 h-2.5 w-2.5" />
+                    Optimized
+                  </Badge>
+                )}
+                {dlData?.config?.enabled && dlData?.config?.status === "idle" && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 border-blue-500/50 text-blue-600">
+                    Idle
+                  </Badge>
+                )}
+                {!dlData?.config?.enabled && (
+                  <span className="text-[10px] text-muted-foreground">Off</span>
                 )}
                 <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
               </Link>

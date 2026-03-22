@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import { getAllSkillsAdmin, createSkill } from "@/lib/skills/registry";
+import { parseDeepLearningConfig } from "@/lib/training/types";
 
 export async function GET() {
   const skills = await getAllSkillsAdmin();
-  return NextResponse.json(skills);
+  // Append dlStatus for UI badges
+  const enriched = skills.map((s) => {
+    const dl = parseDeepLearningConfig((s as { deepLearning?: string }).deepLearning ?? "{}");
+    return { ...s, dlStatus: dl.enabled ? dl.status : null };
+  });
+  return NextResponse.json(enriched);
 }
 
 export async function POST(req: Request) {

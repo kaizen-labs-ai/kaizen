@@ -50,19 +50,21 @@ model Skill {
   instructions String
   modelPref    String?
   enabled      Boolean  @default(true)
+  deepLearning String   @default("{}")  // JSON: DeepLearningConfig
   createdBy    String   @default("user")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tools        SkillTool[]
-  guardrails   Guardrail[]
-  attachments  SkillAttachment[]
-  extensions   SkillExtension[]
-  vaultEntries SkillVaultEntry[]
-  objectives   Objective[]
-  schedules     Schedule[]
-  subSkills     SkillSubSkill[] @relation("SubSkillParent")
-  parentSkills  SkillSubSkill[] @relation("SubSkillChild")
+  tools          SkillTool[]
+  guardrails     Guardrail[]
+  attachments    SkillAttachment[]
+  extensions     SkillExtension[]
+  vaultEntries   SkillVaultEntry[]
+  objectives     Objective[]
+  schedules      Schedule[]
+  subSkills      SkillSubSkill[] @relation("SubSkillParent")
+  parentSkills   SkillSubSkill[] @relation("SubSkillChild")
+  trainingEpochs TrainingEpoch[]
 }
 
 model SkillTool {
@@ -399,4 +401,37 @@ model LlmUsage {
   @@index([runId])
   @@index([agentId])
   @@index([model])
+}
+
+model TrainingEpoch {
+  id               String    @id @default(cuid())
+  skillId          String
+  epoch            Int
+  triggerRunId      String?
+  status           String    @default("running") // "running" | "completed" | "failed"
+  hypothesis       String    @default("")
+  mutation         String    @default("{}")       // JSON: what changed
+  fitness          Float?
+  fitnessBreakdown String    @default("{}")       // JSON: per-metric scores
+  cost             Float     @default(0)
+  startedAt        DateTime  @default(now())
+  endedAt          DateTime?
+
+  skill    Skill             @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  snapshot TrainingSnapshot?
+
+  @@index([skillId, epoch])
+  @@unique([skillId, epoch])
+}
+
+model TrainingSnapshot {
+  id           String   @id @default(cuid())
+  epochId      String   @unique
+  instructions String
+  guardrails   String   @default("[]")  // JSON array
+  toolIds      String   @default("[]")  // JSON array
+  pluginData   String   @default("[]")  // JSON array
+  createdAt    DateTime @default(now())
+
+  epoch TrainingEpoch @relation(fields: [epochId], references: [id], onDelete: Cascade)
 }
