@@ -426,6 +426,26 @@ export function ChatInput({ onSend, onStop, isStreaming, disabled, voiceEnabled,
   }
 
   function handlePaste(e: React.ClipboardEvent) {
+    // Handle image paste from clipboard (e.g. screenshots, copied images)
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) return;
+        const formData = new FormData();
+        formData.append("file", file, file.name || "pasted-image.png");
+        setUploading(true);
+        fetch("/api/uploads", { method: "POST", body: formData })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data: UploadedFile | null) => {
+            if (data) setAttachments((prev) => [...prev, data]);
+          })
+          .finally(() => setUploading(false));
+        return;
+      }
+    }
+
     const pasted = e.clipboardData.getData("text/plain").trim();
     if (!pasted) return;
 
