@@ -908,7 +908,7 @@ export const AGENT_DEFAULTS: AgentDefault[] = [
   {
     id: "trainer",
     label: "Trainer",
-    model: "anthropic/claude-sonnet-4",
+    model: "google/gemini-3-flash-preview",
     thinking: true,
     timeout: 300,
     systemPrompt: TRAINER_DEFAULT_PROMPT,
