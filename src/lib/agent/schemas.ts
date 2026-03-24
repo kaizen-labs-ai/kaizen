@@ -313,12 +313,28 @@ export function normalizeSchema(schema: unknown): Record<string, unknown> {
     obj.properties = {};
   }
 
+  // Guard: if properties is an array (common LLM mistake), convert to object
+  if (Array.isArray(obj.properties)) {
+    const fixedProps: Record<string, unknown> = {};
+    for (const name of obj.properties) {
+      if (typeof name === "string") fixedProps[name] = { type: "string" };
+    }
+    obj.properties = fixedProps;
+  }
+
   if (obj.properties && typeof obj.properties === "object") {
     const props: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(obj.properties as Record<string, unknown>)) {
       props[key] = normalizeSchema(val);
     }
     obj.properties = props;
+  }
+
+  // Guard: remove required entries that don't exist in properties
+  if (Array.isArray(obj.required) && obj.properties && typeof obj.properties === "object") {
+    const propKeys = new Set(Object.keys(obj.properties as Record<string, unknown>));
+    obj.required = (obj.required as string[]).filter((r) => propKeys.has(r));
+    if ((obj.required as string[]).length === 0) delete obj.required;
   }
   if (obj.items && typeof obj.items === "object") {
     obj.items = normalizeSchema(obj.items);

@@ -15,6 +15,40 @@ import {
   ensurePluginPackageJson,
 } from "@/lib/workspace";
 
+// ── Helpers ──────────────────────────────────────────────
+
+/**
+ * Validate and sanitise an inputSchema before writing to the DB.
+ * Guards against the common LLM mistake of returning `properties` as an
+ * array of property names instead of a JSON-Schema properties object.
+ */
+function sanitizeInputSchema(raw: unknown): Record<string, unknown> {
+  if (!raw || typeof raw !== "object") return { type: "object", properties: {} };
+  const schema = raw as Record<string, unknown>;
+
+  // Fix: properties must be a plain object, not an array
+  if (Array.isArray(schema.properties)) {
+    const props: Record<string, unknown> = {};
+    for (const name of schema.properties) {
+      if (typeof name === "string") {
+        props[name] = { type: "string", description: name };
+      }
+    }
+    schema.properties = props;
+  }
+
+  if (!schema.type) schema.type = "object";
+  if (schema.type === "object" && !schema.properties) schema.properties = {};
+
+  // Ensure every entry in `required` actually exists in `properties`
+  if (Array.isArray(schema.required) && schema.properties && typeof schema.properties === "object") {
+    const propKeys = new Set(Object.keys(schema.properties as Record<string, unknown>));
+    schema.required = (schema.required as string[]).filter((r) => propKeys.has(r));
+  }
+
+  return schema;
+}
+
 // ── Constants ────────────────────────────────────────────
 
 const LANGUAGE_EXTENSIONS: Record<string, string> = {
@@ -104,9 +138,7 @@ export const createPluginExecutorFactory: ContextualToolExecutorFn = (ctx) => {
           description: shortDescription,
           type: "plugin",
           config: JSON.stringify(config),
-          inputSchema: inputSchema
-            ? JSON.stringify(inputSchema)
-            : JSON.stringify({ type: "object", properties: {} }),
+          inputSchema: JSON.stringify(sanitizeInputSchema(inputSchema)),
           enabled: true,
           createdBy: "agent",
         },
@@ -356,7 +388,7 @@ export const editPluginExecutor: ToolExecutorFn = async (
         : (description as string);
       dbUpdates.description = desc;
     }
-    if (inputSchema) dbUpdates.inputSchema = JSON.stringify(inputSchema);
+    if (inputSchema) dbUpdates.inputSchema = JSON.stringify(sanitizeInputSchema(inputSchema));
 
     // Update script content on disk if provided
     if (script) {
