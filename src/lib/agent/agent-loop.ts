@@ -12,7 +12,7 @@ import { toAbsolutePath } from "@/lib/workspace";
 import { promises as fs } from "node:fs";
 import { createAgentLoopState, type AgentLoopState } from "./schemas";
 import { CODE_TOOL_NAMES, MAX_PIPELINES_PER_RUN } from "./phase-machine";
-import { addToolResult, addPipelineContext, addGuardrailWarning, addNudge, pruneStaleSnapshots } from "./message-builder";
+import { addToolResult, addPipelineContext, addGuardrailWarning, addNudge, pruneStaleSnapshots, buildBrowserActionLog } from "./message-builder";
 import { runCodePipeline } from "./code-pipeline";
 import { validateSyntax } from "./pipeline-subprocess";
 import { sanitizeAgentOutput } from "./pipeline-utils";
@@ -811,6 +811,23 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
           charsFreed: pruneResult.charsFreed,
           agent: config.agentId,
         });
+
+        // Inject a compact action log that survives future pruning.
+        // This prevents the "amnesia loop" where the agent forgets what it already did
+        // after snapshots are pruned and keeps re-discovering the same information.
+        const actionLog = buildBrowserActionLog(messages);
+        if (actionLog) {
+          // Remove any previous action log to avoid stacking
+          for (let j = messages.length - 1; j >= 0; j--) {
+            const c = messages[j].content;
+            if (messages[j].role === "system" && typeof c === "string" &&
+                c.includes("Browser Action Log")) {
+              messages.splice(j, 1);
+              break;
+            }
+          }
+          messages.push({ role: "system", content: actionLog });
+        }
       }
     }
 

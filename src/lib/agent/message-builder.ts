@@ -95,7 +95,7 @@ const BROWSER_TOOLS = new Set([
 ]);
 const PRUNE_CONTENT_THRESHOLD = 2000;
 const KEEP_RECENT_SNAPSHOTS = 2;
-const PRUNED_SUMMARY_CHARS = 200;
+const PRUNED_SUMMARY_CHARS = 1500;
 const NEWLINE_RE = /\n/g;
 
 /**
@@ -194,6 +194,82 @@ function extractSnapshotSummary(content: string): string {
   } catch {
     return "page content removed";
   }
+}
+
+// ── Browser action log ────────────────────────────────────────
+
+/**
+ * Build a compact "action log" from the message history that summarizes
+ * all browser actions taken so far. Injected as a system message after
+ * pruning so the agent retains memory of its progress even when snapshots
+ * are removed.
+ *
+ * Only includes the most recent MAX_LOG_ENTRIES actions to stay compact.
+ */
+const MAX_LOG_ENTRIES = 20;
+
+export function buildBrowserActionLog(
+  messages: ChatMessage[],
+): string | null {
+  // Collect tool_call info from assistant messages
+  const toolCallInfo = new Map<string, { name: string; args: Record<string, unknown> }>();
+  for (const msg of messages) {
+    if (msg.role === "assistant" && msg.tool_calls) {
+      for (const tc of msg.tool_calls) {
+        try {
+          toolCallInfo.set(tc.id, {
+            name: tc.function.name,
+            args: JSON.parse(tc.function.arguments ?? "{}"),
+          });
+        } catch {
+          toolCallInfo.set(tc.id, { name: tc.function.name, args: {} });
+        }
+      }
+    }
+  }
+
+  // Collect browser action results (click, fill, navigate, evaluate — skip snapshot)
+  const entries: string[] = [];
+  for (const msg of messages) {
+    if (msg.role !== "tool" || !msg.tool_call_id) continue;
+    const info = toolCallInfo.get(msg.tool_call_id);
+    if (!info || !BROWSER_TOOLS.has(info.name)) continue;
+    if (info.name === "chrome-snapshot") continue; // Skip snapshot-only entries
+
+    const success = typeof msg.content === "string" &&
+      !msg.content.includes('"success":false') &&
+      !msg.content.includes('"pruned":true');
+
+    let entry: string;
+    switch (info.name) {
+      case "chrome-click":
+        entry = `click uid=${info.args.uid ?? "?"} → ${success ? "ok" : "FAILED"}`;
+        break;
+      case "chrome-fill":
+        entry = `fill uid=${info.args.uid ?? "?"} value="${String(info.args.value ?? "").slice(0, 20)}" → ${success ? "ok" : "FAILED"}`;
+        break;
+      case "chrome-navigate":
+        entry = `navigate ${String(info.args.url ?? "").slice(0, 60)} → ${success ? "ok" : "FAILED"}`;
+        break;
+      case "chrome-evaluate":
+        entry = `evaluate(js) → ${success ? "ok" : "FAILED"}`;
+        break;
+      default:
+        entry = `${info.name} → ${success ? "ok" : "FAILED"}`;
+    }
+    entries.push(entry);
+  }
+
+  if (entries.length === 0) return null;
+
+  const recent = entries.slice(-MAX_LOG_ENTRIES);
+  return [
+    "## Browser Action Log (survives context pruning)",
+    `${recent.length} actions taken so far:`,
+    ...recent.map((e, i) => `${i + 1}. ${e}`),
+    "",
+    "IMPORTANT: Do NOT repeat actions already listed above. If a click was already successful, move to the NEXT step instead of re-clicking.",
+  ].join("\n");
 }
 
 // ── Chat history compaction ───────────────────────────────────
