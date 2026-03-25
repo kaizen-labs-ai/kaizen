@@ -230,26 +230,39 @@ export async function runTrainingEpoch(
     const REGRESSION_THRESHOLD = 0.10; // 10% drop from best triggers rollback
 
     let rolledBack = false;
-    if (
-      bestRecentEpoch &&
+    const fitnessRegressed = bestRecentEpoch &&
       bestRecentEpoch.fitness != null &&
-      currentFitness < bestRecentEpoch.fitness - REGRESSION_THRESHOLD
-    ) {
-      // Fitness has regressed significantly — rollback to the best epoch's snapshot
-      try {
-        const { rollbackToSnapshot } = await import("./queries");
-        await rollbackToSnapshot(bestRecentEpoch.id);
-        rolledBack = true;
+      currentFitness < bestRecentEpoch.fitness - REGRESSION_THRESHOLD;
 
-        createLog("warn", "system",
-          `Training auto-rollback: fitness ${(currentFitness * 100).toFixed(1)}% is ${((bestRecentEpoch.fitness - currentFitness) * 100).toFixed(1)}% below best epoch #${bestRecentEpoch.epoch} (${(bestRecentEpoch.fitness * 100).toFixed(1)}%). Rolled back to epoch #${bestRecentEpoch.epoch} snapshot.`,
-          { skillId, epochId: epoch.id, rolledBackTo: bestRecentEpoch.id },
+    if (fitnessRegressed) {
+      // When the trainer proposes an actual fix (not no_change), skip auto-rollback
+      // and let the fix be applied. The fix's effectiveness is evaluated on the next epoch.
+      // This prevents the "rollback trap" where a broken plugin causes poor fitness →
+      // auto-rollback discards the fix → plugin stays broken → poor fitness → rollback forever.
+      const trainerProposedFix = trainerResponse.action !== "no_change";
+
+      if (trainerProposedFix) {
+        createLog("info", "system",
+          `Training: fitness ${(currentFitness * 100).toFixed(1)}% regressed from best epoch #${bestRecentEpoch!.epoch} (${(bestRecentEpoch!.fitness! * 100).toFixed(1)}%), but trainer proposed a fix (${trainerResponse.action}). Applying fix instead of rolling back.`,
+          { skillId, epochId: epoch.id, action: trainerResponse.action },
         ).catch(() => {});
-      } catch (rollbackErr) {
-        createLog("error", "system",
-          `Training auto-rollback failed: ${rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr)}`,
-          { skillId, epochId: epoch.id },
-        ).catch(() => {});
+      } else {
+        // Trainer sees poor fitness but has nothing to fix — rollback to best state
+        try {
+          const { rollbackToSnapshot } = await import("./queries");
+          await rollbackToSnapshot(bestRecentEpoch!.id);
+          rolledBack = true;
+
+          createLog("warn", "system",
+            `Training auto-rollback: fitness ${(currentFitness * 100).toFixed(1)}% is ${((bestRecentEpoch!.fitness! - currentFitness) * 100).toFixed(1)}% below best epoch #${bestRecentEpoch!.epoch} (${(bestRecentEpoch!.fitness! * 100).toFixed(1)}%). Rolled back to epoch #${bestRecentEpoch!.epoch} snapshot.`,
+            { skillId, epochId: epoch.id, rolledBackTo: bestRecentEpoch!.id },
+          ).catch(() => {});
+        } catch (rollbackErr) {
+          createLog("error", "system",
+            `Training auto-rollback failed: ${rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr)}`,
+            { skillId, epochId: epoch.id },
+          ).catch(() => {});
+        }
       }
     }
 
