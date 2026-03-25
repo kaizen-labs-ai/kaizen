@@ -482,6 +482,37 @@ async function safeInstructionsUpdate(
   return true;
 }
 
+/**
+ * Sanitize an inputSchema from the trainer LLM.
+ * Fixes a common corruption pattern where the real schema is buried in a
+ * "payload" sub-field while top-level properties are all declared as "string".
+ * Also strips non-standard fields that confuse the tool execution layer.
+ */
+function sanitizeInputSchema(schema: Record<string, unknown>): Record<string, unknown> {
+  // If there's a "payload" field with a real schema inside, extract and use it
+  if (schema.payload && typeof schema.payload === "string") {
+    try {
+      const payload = JSON.parse(schema.payload);
+      if (payload.type === "object" && payload.properties) {
+        createLog("warn", "system", `Training sanitizeInputSchema: extracted real schema from "payload" sub-field`).catch(() => {});
+        return payload;
+      }
+    } catch { /* not valid JSON, ignore */ }
+  }
+  if (schema.payload && typeof schema.payload === "object") {
+    const payload = schema.payload as Record<string, unknown>;
+    if (payload.type === "object" && payload.properties) {
+      createLog("warn", "system", `Training sanitizeInputSchema: extracted real schema from "payload" sub-field`).catch(() => {});
+      return payload;
+    }
+  }
+
+  // Strip the payload field if it exists but wasn't a valid schema
+  const cleaned = { ...schema };
+  delete cleaned.payload;
+  return cleaned;
+}
+
 async function applyMutation(
   skillId: string,
   skill: { tools?: Array<{ toolId: string }> },
@@ -606,10 +637,17 @@ async function applyMutation(
       const pluginDesc = mutation.description as string;
       const pluginLang = (mutation.language as string) || "python";
       const specification = mutation.specification as string;
-      const pluginInputSchema = mutation.inputSchema as Record<string, unknown> | undefined;
+      let pluginInputSchema = mutation.inputSchema as Record<string, unknown> | undefined;
       const pluginDeps = (mutation.dependencies as string[]) || [];
 
       if (!pluginName || !specification) break;
+
+      // Fix corrupted inputSchema: the trainer LLM sometimes puts the real schema
+      // inside a "payload" sub-field while declaring all properties as type:"string"
+      // at the top level. Extract the real schema from payload if it exists.
+      if (pluginInputSchema) {
+        pluginInputSchema = sanitizeInputSchema(pluginInputSchema);
+      }
 
       try {
         // Build a skeleton script for the developer agent to enhance
@@ -631,6 +669,17 @@ async function applyMutation(
           triggerRunId || "training",
           async () => {}, // recordStep — silent for training
         );
+
+        // Only register the plugin if the pipeline succeeded (review passed).
+        // Without this check, broken plugins get registered and fail on every run.
+        if (!pipelineResult.reviewMeta) {
+          createLog("warn", "system", `Training create_plugin "${pluginName}": pipeline FAILED (no review result) — plugin NOT registered`).catch(() => {});
+          break;
+        }
+        if (!pipelineResult.reviewMeta.passed) {
+          createLog("warn", "system", `Training create_plugin "${pluginName}": pipeline review FAILED — plugin NOT registered. Issues: ${pipelineResult.reviewMeta.lastIssues?.join("; ")}`).catch(() => {});
+          break;
+        }
 
         // Register the plugin via the executor
         const { executeTool } = await import("@/lib/tools/executor");
@@ -696,6 +745,16 @@ async function applyMutation(
           triggerRunId || "training",
           async () => {},
         );
+
+        // Only apply the edit if the pipeline succeeded (review passed).
+        if (!pipelineResult.reviewMeta) {
+          createLog("warn", "system", `Training edit_plugin "${editPluginName}": pipeline FAILED (no review result) — edit NOT applied`).catch(() => {});
+          break;
+        }
+        if (!pipelineResult.reviewMeta.passed) {
+          createLog("warn", "system", `Training edit_plugin "${editPluginName}": pipeline review FAILED — edit NOT applied. Issues: ${pipelineResult.reviewMeta.lastIssues?.join("; ")}`).catch(() => {});
+          break;
+        }
 
         // Apply the edit via the executor
         const { executeTool } = await import("@/lib/tools/executor");

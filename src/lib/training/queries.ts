@@ -93,6 +93,20 @@ export async function getRunHistoryForSkill(
         }
       }
 
+      // Capture tool call failures — these are invisible as "error" type steps
+      // but critical for the trainer to know which tools are broken.
+      if (step.type === "tool_result") {
+        try {
+          const parsed = JSON.parse(step.content);
+          const result = parsed.result;
+          if (result && result.success === false) {
+            const toolName = parsed.name || "unknown-tool";
+            const errMsg = result.error || JSON.stringify(result.output || "").slice(0, 200);
+            errors.push(`Tool "${toolName}" failed: ${errMsg}`);
+          }
+        } catch { /* skip unparseable */ }
+      }
+
       if (step.type === "tool_call" && step.toolId) {
         try {
           const parsed = JSON.parse(step.content);
