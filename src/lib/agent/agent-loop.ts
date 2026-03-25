@@ -42,6 +42,13 @@ const LOOP_FORCE_STOP = 3;
 // Browser progress check interval
 const BROWSER_PROGRESS_CHECK_INTERVAL = 15;
 
+// Browser action budget — safety net when pattern detection misses
+const BROWSER_BUDGET_WARN = 40;
+const BROWSER_BUDGET_STOP = 60;
+
+// Click repeat threshold — max clicks on same UID before guardrail fires
+const CLICK_REPEAT_THRESHOLD = 4;
+
 // Pre-compiled patterns for response processing (called every iteration)
 const WHITESPACE_STRIP_RE = /[-\s]/g;
 const UNDERSCORE_RE = /_/g;
@@ -556,6 +563,11 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
       if (tc.function.name === "chrome-select-tab" && toolArgs.pageId) {
         state.tabSelectHistory.push(String(toolArgs.pageId));
       }
+      // Track click UIDs for repeat detection
+      if (tc.function.name === "chrome-click" && toolArgs.uid) {
+        const uid = String(toolArgs.uid);
+        state.clickedUids.set(uid, (state.clickedUids.get(uid) ?? 0) + 1);
+      }
 
       // ── Track Zapier config URL call — blocks subsequent skill/schedule creation ──
       if (tc.function.name === "zapier_get_configuration_url" && result.success) {
@@ -583,12 +595,16 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
         }
       }
 
-      // Same-tool-name consecutive call tracking (catches loops with varying args)
-      if (tc.function.name === state.consecutiveSameToolName) {
-        state.consecutiveSameToolCount++;
-      } else {
-        state.consecutiveSameToolName = tc.function.name;
-        state.consecutiveSameToolCount = 1;
+      // Same-tool-name consecutive call tracking (catches loops with varying args).
+      // Skip chrome-snapshot — it's informational and interleaves with action tools,
+      // masking click→snapshot→click→snapshot loops as non-consecutive clicks.
+      if (tc.function.name !== "chrome-snapshot") {
+        if (tc.function.name === state.consecutiveSameToolName) {
+          state.consecutiveSameToolCount++;
+        } else {
+          state.consecutiveSameToolName = tc.function.name;
+          state.consecutiveSameToolCount = 1;
+        }
       }
 
       // Record tool result step
@@ -720,6 +736,32 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
         }, config.context.runId).catch(() => {});
         addGuardrailWarning(messages, "tab_cycle");
       }
+    }
+
+    // ── Click UID repeat detection (fires once per offending UID) ──
+    if (state.browserToolsUsed && !state.browserActionLoopFired) {
+      for (const [uid, count] of state.clickedUids) {
+        if (count >= CLICK_REPEAT_THRESHOLD) {
+          state.browserActionLoopFired = true;
+          createLog("warn", "orchestrator", `Click repeat detected: uid="${uid}" clicked ${count} times`, { clickedUids: Object.fromEntries(state.clickedUids) }, config.context.runId).catch(() => {});
+          addGuardrailWarning(messages, "click_repeat", { uid, count });
+          break;
+        }
+      }
+    }
+
+    // ── Browser action budget (safety net) ──
+    if (state.browserToolCallCount >= BROWSER_BUDGET_STOP && !state.browserBudgetWarned) {
+      state.browserBudgetWarned = true;
+      createLog("warn", "orchestrator", `Browser budget exhausted: ${state.browserToolCallCount} actions`, {}, config.context.runId).catch(() => {});
+      addGuardrailWarning(messages, "browser_budget_stop", { limit: state.browserToolCallCount });
+      // Strip browser tools — only advance-phase allowed
+      state.tabCycleNudgeFired = true; // Reuse flag to strip chrome-* tools on next iteration
+    } else if (state.browserToolCallCount >= BROWSER_BUDGET_WARN && state.browserToolCallCount < BROWSER_BUDGET_STOP && !state.browserBudgetWarned) {
+      messages.push({
+        role: "system",
+        content: `Browser action warning (${state.browserToolCallCount}/${BROWSER_BUDGET_STOP} budget): You are using a high number of browser actions. Focus on completing the task efficiently. If you are stuck or going in circles, call advance-phase and explain what is blocking you.`,
+      });
     }
 
     // ── Periodic browser progress check ──

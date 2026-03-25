@@ -187,6 +187,12 @@ export interface AgentLoopState {
   consecutiveSameToolCount: number;
   /** Tool name to strip after consecutive-fail-stop fires (hard guardrail) */
   failingToolToStrip: string | null;
+  /** Map of chrome-click UIDs → click count for detecting futile re-clicking */
+  clickedUids: Map<string, number>;
+  /** Whether the browser-action-loop guardrail has fired (fires at most once) */
+  browserActionLoopFired: boolean;
+  /** Whether the browser budget warning has fired */
+  browserBudgetWarned: boolean;
 }
 
 export function createAgentLoopState(): AgentLoopState {
@@ -222,6 +228,9 @@ export function createAgentLoopState(): AgentLoopState {
     consecutiveSameToolName: null,
     consecutiveSameToolCount: 0,
     failingToolToStrip: null,
+    clickedUids: new Map(),
+    browserActionLoopFired: false,
+    browserBudgetWarned: false,
   };
 }
 

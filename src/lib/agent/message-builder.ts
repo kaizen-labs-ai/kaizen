@@ -34,8 +34,8 @@ export function addPipelineContext(
 /** Add a guardrail warning when consecutive failures or tool cap is hit. */
 export function addGuardrailWarning(
   messages: ChatMessage[],
-  type: "consecutive_fail_warn" | "consecutive_fail_stop" | "tool_cap" | "tool_loop" | "tool_loop_stop" | "search_pivot" | "tab_cycle",
-  details?: { limit?: number; toolCallId?: string },
+  type: "consecutive_fail_warn" | "consecutive_fail_stop" | "tool_cap" | "tool_loop" | "tool_loop_stop" | "search_pivot" | "tab_cycle" | "browser_action_loop" | "browser_budget_stop" | "click_repeat",
+  details?: { limit?: number; toolCallId?: string; uid?: string; count?: number },
 ): void {
   const content = {
     consecutive_fail_warn:
@@ -52,6 +52,12 @@ export function addGuardrailWarning(
       "You have made several search attempts without finding what you need. STOP searching and try a different approach: use web-fetch to go directly to the source URL (e.g., the official website, channel page, RSS feed, or API endpoint). Direct fetching is often more reliable than repeated searches when looking for specific or recent content from a known source.",
     tab_cycle:
       "You are cycling through the same browser tabs repeatedly. Snapshot pruning removes old page content, causing you to re-read pages you already visited. STOP switching tabs now. Synthesize your findings from the information you have already gathered and call advance-phase. If you need to re-read a specific page, use web-fetch with its URL instead of Chrome.",
+    browser_action_loop:
+      "You are stuck in a repetitive browser action loop — clicking the same elements and taking snapshots without making progress. The page is likely blocked by a modal, overlay, or the element is not responding as expected. STOP repeating these clicks. Try a completely different approach: use chrome-evaluate to interact via JavaScript (dismiss modals, submit forms directly), navigate to a different URL, or call advance-phase and explain to the user what is blocking you.",
+    browser_budget_stop:
+      `CRITICAL: You have used ${details?.limit ?? 60} browser actions — this is far too many for a single task. You MUST call advance-phase NOW. Summarize what you accomplished and what you could not complete. Do NOT make any more browser tool calls.`,
+    click_repeat:
+      `You have clicked element uid="${details?.uid ?? "?"}" ${details?.count ?? 0} times without the desired effect. This element may be non-interactive, blocked by a modal/overlay, or requires a different interaction method. STOP clicking it. Try: (1) chrome-evaluate to dismiss any blocking modal or interact via JS, (2) navigate to a different page, or (3) call advance-phase if the task cannot proceed.`,
   }[type];
 
   if (type === "tool_cap" && details?.toolCallId) {
@@ -101,12 +107,15 @@ const NEWLINE_RE = /\n/g;
 export function pruneStaleSnapshots(
   messages: ChatMessage[],
 ): { prunedCount: number; charsFreed: number } {
-  // Build map: toolCallId → toolName from assistant messages
-  const toolCallNames = new Map<string, string>();
+  // Build map: toolCallId → { name, args } from assistant messages
+  const toolCallInfo = new Map<string, { name: string; args: string }>();
   for (const msg of messages) {
     if (msg.role === "assistant" && msg.tool_calls) {
       for (const tc of msg.tool_calls) {
-        toolCallNames.set(tc.id, tc.function.name);
+        toolCallInfo.set(tc.id, {
+          name: tc.function.name,
+          args: tc.function.arguments ?? "{}",
+        });
       }
     }
   }
@@ -116,26 +125,27 @@ export function pruneStaleSnapshots(
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
     if (msg.role !== "tool" || !msg.tool_call_id) continue;
-    const toolName = toolCallNames.get(msg.tool_call_id);
-    if (!toolName || !BROWSER_TOOLS.has(toolName)) continue;
+    const info = toolCallInfo.get(msg.tool_call_id);
+    if (!info || !BROWSER_TOOLS.has(info.name)) continue;
     const content = typeof msg.content === "string" ? msg.content : "";
     if (content.length > PRUNE_CONTENT_THRESHOLD) {
       browserResultIndices.push(i);
     }
   }
 
-  // Keep only the last N, replace older ones with summary placeholder
+  // Keep only the last N, replace older ones with action-aware summary
   let prunedCount = 0;
   let charsFreed = 0;
   if (browserResultIndices.length > KEEP_RECENT_SNAPSHOTS) {
     const toPrune = browserResultIndices.slice(0, -KEEP_RECENT_SNAPSHOTS);
     for (const idx of toPrune) {
       const oldContent = messages[idx].content as string;
-      // Extract a brief summary from the original content for breadcrumbs
+      const info = toolCallInfo.get(messages[idx].tool_call_id!);
+      const actionPrefix = info ? formatActionBreadcrumb(info.name, info.args) : "";
       const summary = extractSnapshotSummary(oldContent);
       const replacement = JSON.stringify({
         pruned: true,
-        note: `[Browser snapshot pruned — ${summary}]`,
+        note: `[Pruned${actionPrefix} — ${summary}]`,
       });
       charsFreed += oldContent.length - replacement.length;
       messages[idx].content = replacement;
@@ -144,6 +154,29 @@ export function pruneStaleSnapshots(
   }
 
   return { prunedCount, charsFreed };
+}
+
+/** Format a brief action breadcrumb from a tool call for pruned placeholders. */
+function formatActionBreadcrumb(toolName: string, argsJson: string): string {
+  try {
+    const args = JSON.parse(argsJson);
+    switch (toolName) {
+      case "chrome-click":
+        return ` click(uid=${args.uid ?? "?"})`;
+      case "chrome-fill":
+        return ` fill(uid=${args.uid ?? "?"}, value="${String(args.value ?? "").slice(0, 30)}")`;
+      case "chrome-navigate":
+        return ` navigate(${String(args.url ?? "").slice(0, 80)})`;
+      case "chrome-evaluate":
+        return ` evaluate(js)`;
+      case "chrome-snapshot":
+        return ` snapshot`;
+      default:
+        return ` ${toolName}`;
+    }
+  } catch {
+    return ` ${toolName}`;
+  }
 }
 
 /** Extract a brief summary from a browser tool result for the pruned placeholder. */
