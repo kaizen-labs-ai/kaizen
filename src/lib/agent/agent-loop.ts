@@ -43,11 +43,15 @@ const LOOP_FORCE_STOP = 3;
 const BROWSER_PROGRESS_CHECK_INTERVAL = 15;
 
 // Browser action budget — safety net when pattern detection misses
-const BROWSER_BUDGET_WARN = 40;
-const BROWSER_BUDGET_STOP = 60;
+const BROWSER_BUDGET_WARN = 30;
+const BROWSER_BUDGET_STOP = 50;
 
 // Click repeat threshold — max clicks on same UID before guardrail fires
 const CLICK_REPEAT_THRESHOLD = 4;
+
+// Total click count thresholds — catches random clicking across many UIDs
+const TOTAL_CLICK_WARN = 12;
+const TOTAL_CLICK_STOP = 18;
 
 // Pre-compiled patterns for response processing (called every iteration)
 const WHITESPACE_STRIP_RE = /[-\s]/g;
@@ -738,15 +742,41 @@ export async function callAgent(config: AgentCallConfig): Promise<{ cancelled: b
       }
     }
 
-    // ── Click UID repeat detection (fires once per offending UID) ──
-    if (state.browserToolsUsed && !state.browserActionLoopFired) {
+    // ── Click UID repeat detection (escalates into loopWarningCount) ──
+    // Fires each time a NEW uid crosses the threshold, and increments loopWarningCount
+    // so repeated click loops eventually trigger force-stop (loopWarningCount >= 3).
+    if (state.browserToolsUsed) {
       for (const [uid, count] of state.clickedUids) {
-        if (count >= CLICK_REPEAT_THRESHOLD) {
+        if (count >= CLICK_REPEAT_THRESHOLD && count % CLICK_REPEAT_THRESHOLD === 0) {
+          // Fire on each multiple of threshold (4, 8, 12...) for the same UID
+          const isFirst = !state.browserActionLoopFired;
           state.browserActionLoopFired = true;
-          createLog("warn", "orchestrator", `Click repeat detected: uid="${uid}" clicked ${count} times`, { clickedUids: Object.fromEntries(state.clickedUids) }, config.context.runId).catch(() => {});
-          addGuardrailWarning(messages, "click_repeat", { uid, count });
-          break;
+          state.loopWarningCount++;
+          createLog("warn", "orchestrator", `Click repeat detected: uid="${uid}" clicked ${count} times (loopWarningCount=${state.loopWarningCount})`, { clickedUids: Object.fromEntries(state.clickedUids) }, config.context.runId).catch(() => {});
+          if (state.loopWarningCount >= LOOP_FORCE_STOP) {
+            addGuardrailWarning(messages, "browser_budget_stop", { limit: count });
+          } else {
+            addGuardrailWarning(messages, "click_repeat", { uid, count });
+          }
+          if (!isFirst) break; // Only fire once per iteration after first detection
         }
+      }
+    }
+
+    // ── Total click count guardrail (catches random clicking across many UIDs) ──
+    {
+      let totalClicks = 0;
+      for (const count of state.clickedUids.values()) totalClicks += count;
+      if (totalClicks >= TOTAL_CLICK_STOP && !state.browserBudgetWarned) {
+        state.browserBudgetWarned = true;
+        state.loopWarningCount = LOOP_FORCE_STOP; // Ensure force-stop on next iteration
+        createLog("warn", "orchestrator", `Total click count exceeded: ${totalClicks} clicks across ${state.clickedUids.size} UIDs`, { clickedUids: Object.fromEntries(state.clickedUids) }, config.context.runId).catch(() => {});
+        addGuardrailWarning(messages, "browser_budget_stop", { limit: totalClicks });
+      } else if (totalClicks >= TOTAL_CLICK_WARN && !state.browserActionLoopFired) {
+        state.browserActionLoopFired = true;
+        state.loopWarningCount++;
+        createLog("warn", "orchestrator", `High click count: ${totalClicks} clicks across ${state.clickedUids.size} UIDs`, { clickedUids: Object.fromEntries(state.clickedUids) }, config.context.runId).catch(() => {});
+        addGuardrailWarning(messages, "browser_action_loop");
       }
     }
 
