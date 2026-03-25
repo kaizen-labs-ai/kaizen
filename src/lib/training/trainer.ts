@@ -446,6 +446,42 @@ function buildTrainerContext(
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+/**
+ * Guard against destructive instruction updates.
+ * Rejects updates that are less than 50% the length of current instructions —
+ * this catches cases where the trainer LLM returns a partial fragment instead
+ * of the full instructions with targeted edits.
+ * Returns true if the update is safe to apply, false if rejected.
+ */
+async function safeInstructionsUpdate(
+  skillId: string,
+  newInstructions: string,
+  context: string,
+): Promise<boolean> {
+  const currentSkill = await prisma.skill.findUnique({
+    where: { id: skillId },
+    select: { instructions: true },
+  });
+  const currentLen = currentSkill?.instructions?.length ?? 0;
+  const newLen = newInstructions.length;
+
+  // Reject if new instructions are less than 50% of current length (likely a partial fragment)
+  if (currentLen > 0 && newLen < currentLen * 0.5) {
+    createLog(
+      "warn", "system",
+      `Training ${context}: BLOCKED destructive instructions update (${newLen} chars would replace ${currentLen} chars — ${Math.round(newLen / currentLen * 100)}% of original). The trainer likely returned a partial fragment instead of the full instructions.`,
+      { skillId, currentLen, newLen },
+    ).catch(() => {});
+    return false;
+  }
+
+  await prisma.skill.update({
+    where: { id: skillId },
+    data: { instructions: newInstructions },
+  });
+  return true;
+}
+
 async function applyMutation(
   skillId: string,
   skill: { tools?: Array<{ toolId: string }> },
@@ -458,10 +494,7 @@ async function applyMutation(
     case "modify_instructions": {
       const newInstructions = mutation.instructions as string;
       if (newInstructions) {
-        await prisma.skill.update({
-          where: { id: skillId },
-          data: { instructions: newInstructions },
-        });
+        await safeInstructionsUpdate(skillId, newInstructions, "modify_instructions");
       }
       break;
     }
@@ -558,10 +591,7 @@ async function applyMutation(
 
         // Update instructions to tell the executor to use the new schema
         if (schemaInstructionsUpdate) {
-          await prisma.skill.update({
-            where: { id: skillId },
-            data: { instructions: schemaInstructionsUpdate },
-          });
+          await safeInstructionsUpdate(skillId, schemaInstructionsUpdate, "modify_db_schema");
         }
 
         createLog("info", "system", `Training modified DB schema for skill ${skillId}: ${sqlStatements.length} statement(s)`).catch(() => {});
@@ -623,10 +653,7 @@ async function applyMutation(
         // Update instructions to reference the new plugin (if provided)
         const createInstructionsUpdate = mutation.instructions_update as string;
         if (createInstructionsUpdate) {
-          await prisma.skill.update({
-            where: { id: skillId },
-            data: { instructions: createInstructionsUpdate },
-          });
+          await safeInstructionsUpdate(skillId, createInstructionsUpdate, "create_plugin");
         }
 
         createLog("info", "system", `Training created plugin "${pluginName}" for skill ${skillId}`).catch(() => {});
@@ -677,10 +704,7 @@ async function applyMutation(
         // Update instructions to reflect plugin changes (if provided)
         const editInstructionsUpdate = mutation.instructions_update as string;
         if (editInstructionsUpdate) {
-          await prisma.skill.update({
-            where: { id: skillId },
-            data: { instructions: editInstructionsUpdate },
-          });
+          await safeInstructionsUpdate(skillId, editInstructionsUpdate, "edit_plugin");
         }
 
         createLog("info", "system", `Training patched plugin "${editPluginName}" for skill ${skillId}`).catch(() => {});
