@@ -1146,12 +1146,12 @@ async function main() {
     where: { name: "chrome-snapshot" },
     update: {
       description:
-        "Read the current page as an accessibility tree (structured text). Returns element uids needed for chrome-click and chrome-fill. Always call this before clicking or filling.",
+        "Read the current page as an accessibility tree (structured text). Returns element uids needed for chrome-click and chrome-fill. Only needed for initial page reads — chrome-click and chrome-fill already return updated snapshots.",
     },
     create: {
       name: "chrome-snapshot",
       description:
-        "Read the current page as an accessibility tree (structured text). Returns element uids needed for chrome-click and chrome-fill. Always call this before clicking or filling.",
+        "Read the current page as an accessibility tree (structured text). Returns element uids needed for chrome-click and chrome-fill. Only needed for initial page reads — chrome-click and chrome-fill already return updated snapshots.",
       type: "mcp",
       config: JSON.stringify({ server: "chrome-devtools" }),
       inputSchema: JSON.stringify({
@@ -1183,12 +1183,12 @@ async function main() {
     where: { name: "chrome-click" },
     update: {
       description:
-        "Click an element on the page by its uid. Get the uid from chrome-snapshot first.",
+        "Click an element on the page by its uid. Returns the updated page snapshot automatically — do NOT call chrome-snapshot after clicking.",
     },
     create: {
       name: "chrome-click",
       description:
-        "Click an element on the page by its uid. Get the uid from chrome-snapshot first.",
+        "Click an element on the page by its uid. Returns the updated page snapshot automatically — do NOT call chrome-snapshot after clicking.",
       type: "mcp",
       config: JSON.stringify({ server: "chrome-devtools" }),
       inputSchema: JSON.stringify({
@@ -1223,12 +1223,12 @@ async function main() {
     where: { name: "chrome-fill" },
     update: {
       description:
-        "Fill a form field (input, textarea, select) with a value. Get the element uid from chrome-snapshot first.",
+        "Fill a form field (input, textarea, select) with a value. Returns the updated page snapshot automatically — do NOT call chrome-snapshot after filling.",
     },
     create: {
       name: "chrome-fill",
       description:
-        "Fill a form field (input, textarea, select) with a value. Get the element uid from chrome-snapshot first.",
+        "Fill a form field (input, textarea, select) with a value. Returns the updated page snapshot automatically — do NOT call chrome-snapshot after filling.",
       type: "mcp",
       config: JSON.stringify({ server: "chrome-devtools" }),
       inputSchema: JSON.stringify({

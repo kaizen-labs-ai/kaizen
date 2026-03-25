@@ -85,8 +85,9 @@ export async function chromeClickExecutor(
   }
 
   try {
-    const args: Record<string, unknown> = { uid };
-    if (input.includeSnapshot === true) args.includeSnapshot = true;
+    // Always include snapshot so the agent sees the result of the click
+    // without needing a separate chrome-snapshot call (halves tool roundtrips).
+    const args: Record<string, unknown> = { uid, includeSnapshot: true };
     const result = await callChromeDevTool("click", args);
     return { success: true, output: { result: stripDataUris(result).slice(0, MAX_OUTPUT_CHARS) } };
   } catch (err) {
@@ -114,8 +115,9 @@ export async function chromeFillExecutor(
   }
 
   try {
-    const args: Record<string, unknown> = { uid, value };
-    if (input.includeSnapshot === true) args.includeSnapshot = true;
+    // Always include snapshot so the agent sees the result of the fill
+    // without needing a separate chrome-snapshot call.
+    const args: Record<string, unknown> = { uid, value, includeSnapshot: true };
     const result = await callChromeDevTool("fill", args);
     return { success: true, output: { result: stripDataUris(result).slice(0, MAX_OUTPUT_CHARS) } };
   } catch (err) {
